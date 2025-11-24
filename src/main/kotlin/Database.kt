@@ -4,6 +4,7 @@ import com.apptime.code.challenges.ChallengeParticipantStats
 import com.apptime.code.challenges.ChallengeParticipants
 import com.apptime.code.challenges.ChallengeSeedData
 import com.apptime.code.challenges.Challenges
+import com.apptime.code.common.EnvLoader
 import com.apptime.code.consents.ConsentSeedData
 import com.apptime.code.consents.ConsentTemplates
 import com.apptime.code.consents.UserConsents
@@ -24,10 +25,14 @@ import usage.AppUsageEvents
 
 object DatabaseFactory {
     fun init() {
-        val jdbcUrl = System.getenv("DATABASE_URL")
+        // Load .env file if it exists (this reads from .env file)
+        EnvLoader.loadEnvFile()
+        
+        // Get environment variables from .env file or system environment
+        val jdbcUrl = EnvLoader.getEnv("DATABASE_URL")
             ?: "jdbc:postgresql://localhost:5432/screentime_db"
-        val dbUser = System.getenv("DB_USER") ?: "postgres"
-        val dbPassword = System.getenv("DB_PASSWORD") ?: "Sharma@11"
+        val dbUser = EnvLoader.getEnv("DB_USER") ?: "postgres"
+        val dbPassword = EnvLoader.getEnv("DB_PASSWORD") ?: "Sharma@11"
 
         val config = HikariConfig().apply {
             this.jdbcUrl = jdbcUrl
