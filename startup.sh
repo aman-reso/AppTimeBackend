@@ -26,6 +26,53 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Load environment variables from .env file
+load_env_file() {
+    if [ -f ".env" ]; then
+        print_info "Loading environment variables from .env file..."
+        
+        # Read .env file line by line
+        while IFS= read -r line || [ -n "$line" ]; do
+            # Skip empty lines and comments
+            if [[ -z "$line" ]] || [[ "$line" =~ ^[[:space:]]*# ]]; then
+                continue
+            fi
+            
+            # Remove leading/trailing whitespace
+            line=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            
+            # Skip if still empty after trimming
+            if [ -z "$line" ]; then
+                continue
+            fi
+            
+            # Check if line contains =
+            if [[ "$line" =~ ^[^=]+= ]]; then
+                # Extract key and value
+                key=$(echo "$line" | cut -d '=' -f 1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                value=$(echo "$line" | cut -d '=' -f 2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                
+                # Remove surrounding quotes if present (both single and double)
+                if [[ "$value" =~ ^\".*\"$ ]]; then
+                    value="${value:1:-1}"
+                elif [[ "$value" =~ ^\'.*\'$ ]]; then
+                    value="${value:1:-1}"
+                fi
+                
+                # Export the variable (properly handle special characters in value)
+                # Use printf to safely handle special characters
+                printf -v "$key" '%s' "$value"
+                export "$key"
+                print_info "Loaded: $key"
+            fi
+        done < .env
+        
+        print_info "✅ Environment variables loaded from .env"
+    else
+        print_warn ".env file not found. Using system environment variables only."
+    fi
+}
+
 # Check if required environment variables are set
 check_env_vars() {
     print_info "Checking environment variables..."
@@ -155,6 +202,9 @@ main() {
     print_info "========================================="
     print_info "AppTimeBackend Startup Script"
     print_info "========================================="
+    
+    # Load .env file first (before checking variables)
+    load_env_file
     
     # Check environment variables
     check_env_vars
