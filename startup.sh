@@ -113,7 +113,8 @@ build_app() {
     
     # Use gradlew if available, otherwise use system gradle
     if [ -f "./gradlew" ]; then
-        ./gradlew clean build --no-daemon
+        # Build with shadowJar to create executable fat JAR
+        ./gradlew clean shadowJar --no-daemon
     else
         print_error "gradlew not found!"
         exit 1
@@ -130,8 +131,19 @@ build_app() {
 # Extract JAR file path
 get_jar_path() {
     # Find the JAR file in build/libs directory
-    # Look for fat JAR first (with all dependencies), then regular JAR
-    JAR_FILE=$(find build/libs -name "*.jar" -not -name "*-plain.jar" | head -n 1)
+    # Prioritize shadow JAR (fat JAR with all dependencies and Main-Class manifest)
+    # Look for shadow JAR patterns first, then other JARs, exclude plain JARs
+    JAR_FILE=$(find build/libs -name "AppTimeBackend*.jar" -not -name "*-plain.jar" | head -n 1)
+    
+    # If not found, look for any JAR with -all suffix (shadow JAR default)
+    if [ -z "$JAR_FILE" ]; then
+        JAR_FILE=$(find build/libs -name "*-all.jar" | head -n 1)
+    fi
+    
+    # If still not found, look for any JAR except plain JARs
+    if [ -z "$JAR_FILE" ]; then
+        JAR_FILE=$(find build/libs -name "*.jar" -not -name "*-plain.jar" | head -n 1)
+    fi
     
     if [ -z "$JAR_FILE" ]; then
         # If no JAR found, return empty to use gradle run instead
