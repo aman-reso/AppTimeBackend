@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AppTime Backend - Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .tab:hover {
+            background: #e0e0e0;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            color: #333;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            color: #333;
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #333;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .close {
+            background: none;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge.active {
+            background: #10b981;
+            color: white;
+        }
+
+        .badge.inactive {
+            background: #ef4444;
+            color: white;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .tabs {
+                flex-direction: column;
+            }
+            table {
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 AppTime Backend Admin Dashboard</h1>
+            <p>Manage users, challenges, and consent templates</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('dashboard')">📈 Dashboard</button>
+            <button class="tab" onclick="showTab('challenges')">🏆 Challenges</button>
+            <button class="tab" onclick="showTab('users')">👥 Users</button>
+            <button class="tab" onclick="showTab('consents')">📝 Consents</button>
+        </div>
+
+        <div id="error-message" class="error" style="display: none;"></div>
+        <div id="success-message" class="success" style="display: none;"></div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <button class="btn btn-primary" onclick="loadStats()">🔄 Refresh Stats</button>
+            <div id="stats-content"></div>
+        </div>
+
+        <!-- Challenges Tab -->
+        <div id="challenges" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>Challenges Management</h2>
+                    <button class="btn btn-primary" onclick="showChallengeModal()">+ Create Challenge</button>
+                </div>
+                <div id="challenges-content" class="loading">Loading challenges...</div>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="users" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>Users Management</h2>
+                    <button class="btn btn-primary" onclick="loadUsers()">🔄 Refresh</button>
+                </div>
+                <div id="users-content" class="loading">Loading users...</div>
+            </div>
+        </div>
+
+        <!-- Consents Tab -->
+        <div id="consents" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>Consent Templates Management</h2>
+                    <button class="btn btn-primary" onclick="showConsentModal()">+ Create Template</button>
+                </div>
+                <div id="consents-content" class="loading">Loading consent templates...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Challenge Modal -->
+    <div id="challengeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="challengeModalTitle">Create Challenge</h3>
+                <button class="close" onclick="closeChallengeModal()">&times;</button>
+            </div>
+            <form id="challengeForm" onsubmit="saveChallenge(event)">
+                <input type="hidden" id="challengeId">
+                <div class="form-group">
+                    <label>Title *</label>
+                    <input type="text" id="challengeTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="challengeDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Challenge Type *</label>
+                    <select id="challengeType" required>
+                        <option value="LESS_SCREENTIME">Less Screen Time</option>
+                        <option value="MORE_SCREENTIME">More Screen Time</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Start Time (ISO 8601) *</label>
+                    <input type="datetime-local" id="challengeStartTime" required>
+                </div>
+                <div class="form-group">
+                    <label>End Time (ISO 8601) *</label>
+                    <input type="datetime-local" id="challengeEndTime" required>
+                </div>
+                <div class="form-group">
+                    <label>Reward</label>
+                    <input type="text" id="challengeReward">
+                </div>
+                <div class="form-group">
+                    <label>Prize (HTML)</label>
+                    <textarea id="challengePrize"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Rules (HTML)</label>
+                    <textarea id="challengeRules"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Thumbnail URL</label>
+                    <input type="url" id="challengeThumbnail">
+                </div>
+                <div class="form-group">
+                    <label>Package Names (comma-separated)</label>
+                    <input type="text" id="challengePackageNames">
+                </div>
+                <div class="form-group">
+                    <label>Display Type</label>
+                    <select id="challengeDisplayType">
+                        <option value="">None</option>
+                        <option value="SPECIAL">Special</option>
+                        <option value="TRENDING">Trending</option>
+                        <option value="QUICK_JOIN">Quick Join</option>
+                        <option value="FEATURE">Feature</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tags (comma-separated)</label>
+                    <input type="text" id="challengeTags">
+                </div>
+                <div class="form-group">
+                    <label>Sponsor</label>
+                    <input type="text" id="challengeSponsor">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="challengeIsActive" checked> Active
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeChallengeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Consent Modal -->
+    <div id="consentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="consentModalTitle">Create Consent Template</h3>
+                <button class="close" onclick="closeConsentModal()">&times;</button>
+            </div>
+            <form id="consentForm" onsubmit="saveConsent(event)">
+                <input type="hidden" id="consentId">
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="consentName" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="consentDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="consentIsMandatory"> Mandatory
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeConsentModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let currentEditingChallenge = null;
+        let currentEditingConsent = null;
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            if (tabName === 'challenges') loadChallenges();
+            if (tabName === 'users') loadUsers();
+            if (tabName === 'consents') loadConsents();
+        }
+
+        function showMessage(message, type = 'error') {
+            const el = type === 'error' ? document.getElementById('error-message') : document.getElementById('success-message');
+            const otherEl = type === 'error' ? document.getElementById('success-message') : document.getElementById('error-message');
+            el.textContent = message;
+            el.style.display = 'block';
+            otherEl.style.display = 'none';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        // Dashboard Stats
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/stats`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    displayStats(result.data);
+                }
+            } catch (err) {
+                showMessage(`Error loading stats: ${err.message}`);
+            }
+        }
+
+        function displayStats(stats) {
+            const html = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Users</h3>
+                        <div class="value">${stats.users.totalUsers}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Active Challenges</h3>
+                        <div class="value">${stats.challenges.activeChallenges}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Events</h3>
+                        <div class="value">${stats.usage.totalEvents}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Focus Sessions</h3>
+                        <div class="value">${stats.focus.totalSessions}</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('stats-content').innerHTML = html;
+        }
+
+        // Challenges Management
+        async function loadChallenges() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/challenges`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    displayChallenges(result.data);
+                }
+            } catch (err) {
+                showMessage(`Error loading challenges: ${err.message}`);
+            }
+        }
+
+        function displayChallenges(challenges) {
+            if (challenges.length === 0) {
+                document.getElementById('challenges-content').innerHTML = '<p>No challenges found.</p>';
+                return;
+            }
+            const html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Participants</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${challenges.map(c => `
+                            <tr>
+                                <td>${c.id}</td>
+                                <td>${c.title}</td>
+                                <td>${c.challengeType}</td>
+                                <td>${c.participantCount}</td>
+                                <td><span class="badge ${c.isActive ? 'active' : 'inactive'}">${c.isActive ? 'Active' : 'Inactive'}</span></td>
+                                <td class="actions">
+                                    <button class="btn btn-primary btn-sm" onclick="editChallenge(${c.id})">Edit</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteChallenge(${c.id})">Delete</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('challenges-content').innerHTML = html;
+        }
+
+        function showChallengeModal(challenge = null) {
+            currentEditingChallenge = challenge;
+            const modal = document.getElementById('challengeModal');
+            const form = document.getElementById('challengeForm');
+            const title = document.getElementById('challengeModalTitle');
+            
+            if (challenge) {
+                title.textContent = 'Edit Challenge';
+                document.getElementById('challengeId').value = challenge.id;
+                document.getElementById('challengeTitle').value = challenge.title;
+                document.getElementById('challengeDescription').value = challenge.description || '';
+                document.getElementById('challengeType').value = challenge.challengeType;
+                document.getElementById('challengeStartTime').value = new Date(challenge.startTime).toISOString().slice(0, 16);
+                document.getElementById('challengeEndTime').value = new Date(challenge.endTime).toISOString().slice(0, 16);
+                document.getElementById('challengeReward').value = challenge.reward || '';
+                document.getElementById('challengePrize').value = challenge.prize || '';
+                document.getElementById('challengeRules').value = challenge.rules || '';
+                document.getElementById('challengeThumbnail').value = challenge.thumbnail || '';
+                document.getElementById('challengePackageNames').value = challenge.packageNames || '';
+                document.getElementById('challengeDisplayType').value = challenge.displayType || '';
+                document.getElementById('challengeTags').value = challenge.tags || '';
+                document.getElementById('challengeSponsor').value = challenge.sponsor || '';
+                document.getElementById('challengeIsActive').checked = challenge.isActive;
+            } else {
+                title.textContent = 'Create Challenge';
+                form.reset();
+                document.getElementById('challengeId').value = '';
+            }
+            modal.classList.add('active');
+        }
+
+        function closeChallengeModal() {
+            document.getElementById('challengeModal').classList.remove('active');
+            currentEditingChallenge = null;
+        }
+
+        async function saveChallenge(event) {
+            event.preventDefault();
+            const id = document.getElementById('challengeId').value;
+            const startTime = new Date(document.getElementById('challengeStartTime').value).toISOString();
+            const endTime = new Date(document.getElementById('challengeEndTime').value).toISOString();
+            
+            const data = {
+                title: document.getElementById('challengeTitle').value,
+                description: document.getElementById('challengeDescription').value || null,
+                challengeType: document.getElementById('challengeType').value,
+                startTime: startTime,
+                endTime: endTime,
+                reward: document.getElementById('challengeReward').value || null,
+                prize: document.getElementById('challengePrize').value || null,
+                rules: document.getElementById('challengeRules').value || null,
+                thumbnail: document.getElementById('challengeThumbnail').value || null,
+                packageNames: document.getElementById('challengePackageNames').value || null,
+                displayType: document.getElementById('challengeDisplayType').value || null,
+                tags: document.getElementById('challengeTags').value || null,
+                sponsor: document.getElementById('challengeSponsor').value || null,
+                isActive: document.getElementById('challengeIsActive').checked
+            };
+
+            try {
+                const url = id ? `${API_BASE}/api/admin/challenges/${id}` : `${API_BASE}/api/admin/challenges`;
+                const method = id ? 'PUT' : 'POST';
+                const body = id ? { ...data } : data;
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(result.message || 'Challenge saved successfully', 'success');
+                    closeChallengeModal();
+                    loadChallenges();
+                } else {
+                    showMessage(result.message || 'Failed to save challenge');
+                }
+            } catch (err) {
+                showMessage(`Error: ${err.message}`);
+            }
+        }
+
+        async function editChallenge(id) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/challenges/${id}`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    showChallengeModal(result.data);
+                }
+            } catch (err) {
+                showMessage(`Error loading challenge: ${err.message}`);
+            }
+        }
+
+        async function deleteChallenge(id) {
+            if (!confirm('Are you sure you want to delete this challenge?')) return;
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/challenges/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('Challenge deleted successfully', 'success');
+                    loadChallenges();
+                } else {
+                    showMessage(result.message || 'Failed to delete challenge');
+                }
+            } catch (err) {
+                showMessage(`Error: ${err.message}`);
+            }
+        }
+
+        // Users Management
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/users`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    displayUsers(result.data);
+                }
+            } catch (err) {
+                showMessage(`Error loading users: ${err.message}`);
+            }
+        }
+
+        function displayUsers(users) {
+            if (users.length === 0) {
+                document.getElementById('users-content').innerHTML = '<p>No users found.</p>';
+                return;
+            }
+            const html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Device Model</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(u => `
+                            <tr>
+                                <td>${u.userId.substring(0, 20)}...</td>
+                                <td>${u.username || 'N/A'}</td>
+                                <td>${u.email || 'N/A'}</td>
+                                <td>${u.deviceModel || 'N/A'}</td>
+                                <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+                                <td class="actions">
+                                    <button class="btn btn-primary btn-sm" onclick="editUser('${u.userId}')">Edit</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.userId}')">Delete</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('users-content').innerHTML = html;
+        }
+
+        async function editUser(userId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/users/${userId}`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    const user = result.data;
+                    const username = prompt('Username:', user.username || '');
+                    const email = prompt('Email:', user.email || '');
+                    const name = prompt('Name:', user.name || '');
+                    const totpEnabled = confirm('TOTP Enabled?', user.totpEnabled);
+                    
+                    if (username !== null) {
+                        await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username, email, name, totpEnabled })
+                        });
+                        showMessage('User updated successfully', 'success');
+                        loadUsers();
+                    }
+                }
+            } catch (err) {
+                showMessage(`Error: ${err.message}`);
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Are you sure you want to delete this user?')) return;
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/users/${userId}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('User deleted successfully', 'success');
+                    loadUsers();
+                } else {
+                    showMessage(result.message || 'Failed to delete user');
+                }
+            } catch (err) {
+                showMessage(`Error: ${err.message}`);
+            }
+        }
+
+        // Consents Management
+        async function loadConsents() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/consents`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    displayConsents(result.data);
+                }
+            } catch (err) {
+                showMessage(`Error loading consents: ${err.message}`);
+            }
+        }
+
+        function displayConsents(consents) {
+            if (consents.length === 0) {
+                document.getElementById('consents-content').innerHTML = '<p>No consent templates found.</p>';
+                return;
+            }
+            const html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Mandatory</th>
+                            <th>Users</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${consents.map(c => `
+                            <tr>
+                                <td>${c.id}</td>
+                                <td>${c.name}</td>
+                                <td>${c.description || 'N/A'}</td>
+                                <td>${c.isMandatory ? 'Yes' : 'No'}</td>
+                                <td>${c.userCount}</td>
+                                <td class="actions">
+                                    <button class="btn btn-primary btn-sm" onclick="editConsent(${c.id})">Edit</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteConsent(${c.id})">Delete</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('consents-content').innerHTML = html;
+        }
+
+        function showConsentModal(consent = null) {
+            currentEditingConsent = consent;
+            const modal = document.getElementById('consentModal');
+            const form = document.getElementById('consentForm');
+            const title = document.getElementById('consentModalTitle');
+            
+            if (consent) {
+                title.textContent = 'Edit Consent Template';
+                document.getElementById('consentId').value = consent.id;
+                document.getElementById('consentName').value = consent.name;
+                document.getElementById('consentDescription').value = consent.description || '';
+                document.getElementById('consentIsMandatory').checked = consent.isMandatory;
+            } else {
+                title.textContent = 'Create Consent Template';
+                form.reset();
+                document.getElementById('consentId').value = '';
+            }
+            modal.classList.add('active');
+        }
+
+        function closeConsentModal() {
+            document.getElementById('consentModal').classList.remove('active');
+            currentEditingConsent = null;
+        }
+
+        async function saveConsent(event) {
+            event.preventDefault();
+            const id = document.getElementById('consentId').value;
+            const data = {
+                name: document.getElementById('consentName').value,
+                description: document.getElementById('consentDescription').value || null,
+                isMandatory: document.getElementById('consentIsMandatory').checked
+            };
+
+            try {
+                const url = id ? `${API_BASE}/api/admin/consents/${id}` : `${API_BASE}/api/admin/consents`;
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage(result.message || 'Consent template saved successfully', 'success');
+                    closeConsentModal();
+                    loadConsents();
+                } else {
+                    showMessage(result.message || 'Failed to save consent template');
+                }
+            } catch (err) {
+                showMessage(`Error: ${err.message}`);
+            }
+        }
+
+        async function editConsent(id) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/consents/${id}`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    showConsentModal(result.data);
+                }
+            } catch (err) {
+                showMessage(`Error loading consent: ${err.message}`);
+            }
+        }
+
+        async function deleteConsent(id) {
+            if (!confirm('Are you sure you want to delete this consent template?')) return;
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/consents/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('Consent template deleted successfully', 'success');
+                    loadConsents();
+                } else {
+                    showMessage(result.message || 'Failed to delete consent template');
+                }
+            } catch (err) {
+                showMessage(`Error: ${err.message}`);
+            }
+        }
+
+        // Load initial data
+        loadStats();
+    </script>
+</body>
+</html>

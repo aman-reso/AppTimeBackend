@@ -1,0 +1,979 @@
+{
+	"info": {
+		"_postman_id": "apptime-backend-collection",
+		"name": "AppTime Backend API",
+		"description": "Complete API collection for AppTime Backend - Kotlin/Ktor application",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health & System",
+			"item": [
+				{
+					"name": "Root - Check Server",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/",
+							"host": ["{{baseUrl}}"],
+							"path": [""]
+						},
+						"description": "Root endpoint - check if server is running"
+					}
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Health check endpoint"
+					}
+				}
+			]
+		},
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Register Device",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"deviceInfo\": {\n    \"deviceId\": \"device123\",\n    \"manufacturer\": \"Google\",\n    \"model\": \"Pixel 7\",\n    \"brand\": \"google\",\n    \"product\": \"product_name\",\n    \"device\": \"device_name\",\n    \"hardware\": \"hardware_name\",\n    \"androidVersion\": \"14\",\n    \"sdkVersion\": 34\n  },\n  \"firebaseToken\": \"your-firebase-token-here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "register"]
+						},
+						"description": "Register a new device/user. Returns userId which is your auth token."
+					}
+				},
+				{
+					"name": "Search Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/search?q=john",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "search"],
+							"query": [
+								{
+									"key": "q",
+									"value": "john",
+									"description": "Search query (minimum 2 characters)"
+								}
+							]
+						},
+						"description": "Search users by name (requires authentication)"
+					}
+				},
+				{
+					"name": "Generate TOTP by Username",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/:username/totp/generate",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", ":username", "totp", "generate"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "john_doe"
+								}
+							]
+						},
+						"description": "Generate TOTP code for a user by username (public endpoint)"
+					}
+				},
+				{
+					"name": "Verify TOTP by Username",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/:username/totp/verify",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", ":username", "totp", "verify"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "john_doe"
+								}
+							]
+						},
+						"description": "Verify TOTP code for a user by username (requires authentication)"
+					}
+				},
+				{
+					"name": "Get User Profile by Username",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/:username/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", ":username", "profile"],
+							"variable": [
+								{
+									"key": "username",
+									"value": "john_doe"
+								}
+							]
+						},
+						"description": "Get user profile after TOTP verification (requires valid TOTP verification session)"
+					}
+				},
+				{
+					"name": "Get User Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/user/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "user", "profile"]
+						},
+						"description": "Get authenticated user's profile"
+					}
+				},
+				{
+					"name": "Update User Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"newusername\",\n  \"firebaseToken\": \"new-firebase-token\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/user/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "user", "profile"]
+						},
+						"description": "Update authenticated user's profile (username and/or firebaseToken)"
+					}
+				},
+				{
+					"name": "Change Username",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"newusername\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/user/username",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "user", "username"]
+						},
+						"description": "Change username for authenticated user"
+					}
+				},
+				{
+					"name": "Generate TOTP",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/user/totp/generate",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "user", "totp", "generate"]
+						},
+						"description": "Generate TOTP code for authenticated user"
+					}
+				},
+				{
+					"name": "Get TOTP Sessions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/user/totp/sessions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "user", "totp", "sessions"]
+						},
+						"description": "Get all active TOTP verification sessions for authenticated user"
+					}
+				},
+				{
+					"name": "Get Sync Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/user/sync/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "user", "sync", "status"]
+						},
+						"description": "Get sync status for authenticated user"
+					}
+				}
+			]
+		},
+		{
+			"name": "Challenges",
+			"item": [
+				{
+					"name": "Get Active Challenges",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/challenges/active",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "challenges", "active"]
+						},
+						"description": "Get all active challenges (auth optional - if authenticated, includes hasJoined flag)"
+					}
+				},
+				{
+					"name": "Join Challenge",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"challengeId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/challenges/join",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "challenges", "join"]
+						},
+						"description": "Join a challenge"
+					}
+				},
+				{
+					"name": "Get User Challenges",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/challenges/user",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "challenges", "user"]
+						},
+						"description": "Get all challenges for authenticated user (including past ones)"
+					}
+				},
+				{
+					"name": "Get Challenge Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/challenges/:challengeId",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "challenges", ":challengeId"],
+							"variable": [
+								{
+									"key": "challengeId",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get challenge details including participant count"
+					}
+				},
+				{
+					"name": "Submit Challenge Stats",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"challengeId\": 1,\n  \"appName\": \"Instagram\",\n  \"packageName\": \"com.instagram.android\",\n  \"startSyncTime\": \"2024-01-15T10:00:00Z\",\n  \"endSyncTime\": \"2024-01-15T10:30:00Z\",\n  \"duration\": 1800000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/challenges/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "challenges", "stats"]
+						},
+						"description": "Submit challenge participant stats (single)"
+					}
+				},
+				{
+					"name": "Submit Challenge Stats Batch",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"challengeId\": 1,\n  \"stats\": [\n    {\n      \"challengeId\": 1,\n      \"appName\": \"Instagram\",\n      \"packageName\": \"com.instagram.android\",\n      \"startSyncTime\": \"2024-01-15T10:00:00Z\",\n      \"endSyncTime\": \"2024-01-15T10:30:00Z\",\n      \"duration\": 1800000\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/challenges/stats/batch",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "challenges", "stats", "batch"]
+						},
+						"description": "Submit multiple challenge participant stats"
+					}
+				},
+				{
+					"name": "Get Challenge Rankings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/challenges/:challengeId/rankings",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "challenges", ":challengeId", "rankings"],
+							"variable": [
+								{
+									"key": "challengeId",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get challenge rankings (top 10 players)"
+					}
+				},
+				{
+					"name": "Get Challenge Last Sync",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/challenges/:challengeId/last-sync",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "challenges", ":challengeId", "last-sync"],
+							"variable": [
+								{
+									"key": "challengeId",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get last sync time for authenticated user in a specific challenge"
+					}
+				}
+			]
+		},
+		{
+			"name": "App Usage Events",
+			"item": [
+				{
+					"name": "Submit Usage Event",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"syncTime\": \"2024-01-15T10:00:00Z\",\n  \"event\": {\n    \"packageName\": \"com.instagram.android\",\n    \"appName\": \"Instagram\",\n    \"eventType\": \"FOREGROUND\",\n    \"eventTimestamp\": \"2024-01-15T10:00:00Z\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/usage/events",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usage", "events"]
+						},
+						"description": "Submit a single app usage event"
+					}
+				},
+				{
+					"name": "Submit Usage Events Batch",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"syncTime\": \"2024-01-15T10:00:00Z\",\n  \"events\": [\n    {\n      \"packageName\": \"com.instagram.android\",\n      \"appName\": \"Instagram\",\n      \"eventType\": \"FOREGROUND\",\n      \"eventTimestamp\": \"2024-01-15T10:00:00Z\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/usage/events/batch",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usage", "events", "batch"]
+						},
+						"description": "Submit multiple app usage events (max 100 per batch)"
+					}
+				},
+				{
+					"name": "Get All Users with Data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/usage/stats/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usage", "stats", "users"]
+						},
+						"description": "Get all userIds that have data in the database (no auth required)"
+					}
+				},
+				{
+					"name": "Get Daily Usage Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/usage/stats/daily?date=2024-01-15",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usage", "stats", "daily"],
+							"query": [
+								{
+									"key": "date",
+									"value": "2024-01-15",
+									"description": "YYYY-MM-DD format (required)"
+								},
+								{
+									"key": "targetUserId",
+									"value": "",
+									"description": "User ID or username (optional - requires TOTP verification)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get daily usage stats for a user"
+					}
+				},
+				{
+					"name": "Get Usage Stats Debug",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/usage/stats/debug?date=2024-01-15",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usage", "stats", "debug"],
+							"query": [
+								{
+									"key": "date",
+									"value": "2024-01-15",
+									"description": "YYYY-MM-DD format (optional)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get debug information about user's app usage data"
+					}
+				},
+				{
+					"name": "Get Raw Usage Events",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/usage/stats/raw",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usage", "stats", "raw"]
+						},
+						"description": "Get all raw events from database for authenticated user"
+					}
+				},
+				{
+					"name": "Get Last Sync Time",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/usage/stats/last-sync",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "usage", "stats", "last-sync"]
+						},
+						"description": "Get the last sync time for app usage stats"
+					}
+				}
+			]
+		},
+		{
+			"name": "Focus Mode",
+			"item": [
+				{
+					"name": "Submit Focus Session (Single)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"focusDuration\": 3600000,\n  \"startTime\": \"2024-01-15T10:00:00Z\",\n  \"endTime\": \"2024-01-15T11:00:00Z\",\n  \"sessionType\": \"DEEP_WORK\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/focus/submit",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "focus", "submit"]
+						},
+						"description": "Submit focus sessions (single or array)"
+					}
+				},
+				{
+					"name": "Submit Focus Sessions (Array)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sessions\": [\n    {\n      \"focusDuration\": 3600000,\n      \"startTime\": \"2024-01-15T10:00:00Z\",\n      \"endTime\": \"2024-01-15T11:00:00Z\",\n      \"sessionType\": \"DEEP_WORK\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/focus/submit",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "focus", "submit"]
+						},
+						"description": "Submit multiple focus sessions"
+					}
+				},
+				{
+					"name": "Get Focus History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/focus/history?startDate=2024-01-15T00:00:00Z&endDate=2024-01-15T23:59:59Z",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "focus", "history"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2024-01-15T00:00:00Z",
+									"description": "ISO 8601 format (optional)",
+									"disabled": true
+								},
+								{
+									"key": "endDate",
+									"value": "2024-01-15T23:59:59Z",
+									"description": "ISO 8601 format (optional)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get focus history for authenticated user"
+					}
+				},
+				{
+					"name": "Get Focus Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/focus/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "focus", "stats"]
+						},
+						"description": "Get focus statistics for authenticated user"
+					}
+				},
+				{
+					"name": "Submit Focus Mode Stats",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"startTime\": 1234567890000,\n  \"endTime\": 1234567895000\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/focus-mode-stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "focus-mode-stats"]
+						},
+						"description": "Submit focus mode stats (times in milliseconds)"
+					}
+				},
+				{
+					"name": "Get Focus Mode Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/focus-mode-stats?startTimeMs=1234567890000&endTimeMs=1234567895000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "focus-mode-stats"],
+							"query": [
+								{
+									"key": "startTimeMs",
+									"value": "1234567890000",
+									"description": "Filter stats with startTime >= this value (milliseconds)",
+									"disabled": true
+								},
+								{
+									"key": "endTimeMs",
+									"value": "1234567895000",
+									"description": "Filter stats with endTime <= this value (milliseconds)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get focus mode stats with optional time-based filtering"
+					}
+				}
+			]
+		},
+		{
+			"name": "Leaderboard",
+			"item": [
+				{
+					"name": "Get Daily Leaderboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/leaderboard/daily?date=2024-01-15",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "leaderboard", "daily"],
+							"query": [
+								{
+									"key": "date",
+									"value": "2024-01-15",
+									"description": "YYYY-MM-DD format (optional, defaults to today)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get daily leaderboard (auth optional - if authenticated, includes userRank)"
+					}
+				},
+				{
+					"name": "Get Weekly Leaderboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/leaderboard/weekly?weekDate=2024-03",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "leaderboard", "weekly"],
+							"query": [
+								{
+									"key": "weekDate",
+									"value": "2024-03",
+									"description": "YYYY-WW format (optional, defaults to current week)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get weekly leaderboard (auth optional - if authenticated, includes userRank)"
+					}
+				}
+			]
+		},
+		{
+			"name": "Consents",
+			"item": [
+				{
+					"name": "Get Consent Templates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/consents",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "consents"]
+						},
+						"description": "Get all available consent templates (public, no auth required)"
+					}
+				},
+				{
+					"name": "Get User Consents",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/consents/user",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "consents", "user"]
+						},
+						"description": "Get authenticated user's submitted consents"
+					}
+				},
+				{
+					"name": "Submit Consents",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"consents\": [\n    {\n      \"templateId\": 1,\n      \"accepted\": true\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/consents",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "consents"]
+						},
+						"description": "Submit user consents"
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://344cdbb499c9.ngrok-free.app",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "your-auth-token-here",
+			"type": "string"
+		}
+	]
+}
+
