@@ -25,11 +25,19 @@ class UsageStatsRepository {
             val month = dateParts[1].toIntOrNull() ?: return@dbTransaction emptyList()
             val day = dateParts[2].toIntOrNull() ?: return@dbTransaction emptyList()
 
-            // Create start and end of day timestamps in UTC
-            // This ensures consistent date queries regardless of server timezone
+            // Create start and end of day timestamps
+            // Adjust UTC boundaries to match IST day boundaries (IST is UTC+5:30)
+            // When user queries for 2025-12-02, they expect IST day boundaries
+            val istOffsetHours = 5
+            val istOffsetMinutes = 30
+            val istOffsetSeconds = istOffsetHours * 3600 + istOffsetMinutes * 60
+            
+            // Start of day in UTC that corresponds to midnight IST
             val startOfDay = java.time.LocalDate.of(year, month, day)
                 .atStartOfDay(java.time.ZoneId.of("UTC"))
                 .toInstant()
+                .minusSeconds(istOffsetSeconds.toLong()) // Subtract IST offset to get IST midnight in UTC
+            
             val endOfDay = startOfDay.plusSeconds(86400) // Add 24 hours (start of next day)
 
             val startInstant = Instant.fromEpochMilliseconds(startOfDay.toEpochMilli())
