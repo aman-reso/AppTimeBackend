@@ -25,11 +25,10 @@ class UsageStatsRepository {
             val month = dateParts[1].toIntOrNull() ?: return@dbTransaction emptyList()
             val day = dateParts[2].toIntOrNull() ?: return@dbTransaction emptyList()
 
-            // Create start and end of day timestamps in server timezone (IST - Asia/Kolkata)
-            // This ensures date queries match the user's local date expectations
-            val serverTimezone = java.time.ZoneId.of("Asia/Kolkata")
+            // Create start and end of day timestamps in UTC
+            // This ensures consistent date queries regardless of server timezone
             val startOfDay = java.time.LocalDate.of(year, month, day)
-                .atStartOfDay(serverTimezone)
+                .atStartOfDay(java.time.ZoneId.of("UTC"))
                 .toInstant()
             val endOfDay = startOfDay.plusSeconds(86400) // Add 24 hours (start of next day)
 
