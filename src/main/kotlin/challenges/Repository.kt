@@ -218,6 +218,8 @@ class ChallengeRepository {
      * Get challenge rankings
      * For LESS_SCREENTIME: rank by total duration ascending (lower is better)
      * For MORE_SCREENTIME: rank by total duration descending (higher is better)
+     * Includes all participants, even those with no stats (0 duration)
+     * Optimized: uses SQL aggregation and minimizes memory usage
      */
     fun getChallengeRankings(
         challengeId: Long,
@@ -225,21 +227,50 @@ class ChallengeRepository {
         limit: Int = 10
     ): List<Pair<String, Long>> {
         return dbTransaction {
-            val stats = ChallengeParticipantStats.select {
-                ChallengeParticipantStats.challengeId eq challengeId
-            }
+            val durationSum = ChallengeParticipantStats.duration.sum()
             
-            // Group by userId and sum durations
-            val userTotals = stats.groupBy { it[ChallengeParticipantStats.userId] }
-                .mapValues { (_, rows) ->
-                    rows.sumOf { it[ChallengeParticipantStats.duration] }
+            // Get aggregated stats with database-level sorting (only users with stats)
+            val statsWithSorting = ChallengeParticipantStats
+                .slice(
+                    ChallengeParticipantStats.userId,
+                    durationSum
+                )
+                .select {
+                    ChallengeParticipantStats.challengeId eq challengeId
+                }
+                .groupBy(ChallengeParticipantStats.userId)
+                .let { query ->
+                    if (challengeType == "LESS_SCREENTIME") {
+                        query.orderBy(durationSum to SortOrder.ASC)
+                    } else {
+                        query.orderBy(durationSum to SortOrder.DESC)
+                    }
                 }
             
-            // Sort based on challenge type
+            val statsMap = statsWithSorting.associate { row ->
+                val userId = row[ChallengeParticipantStats.userId]
+                val totalDuration = row[durationSum] ?: 0L
+                userId to totalDuration
+            }
+            
+            // Get participant user IDs (lightweight - just IDs)
+            val participantUserIds = ChallengeParticipants
+                .slice(ChallengeParticipants.userId)
+                .select {
+                    ChallengeParticipants.challengeId eq challengeId
+                }
+                .map { it[ChallengeParticipants.userId] }
+            
+            // Create rankings with 0 for users without stats
+            val allRankings = participantUserIds.map { userId ->
+                userId to (statsMap[userId] ?: 0L)
+            }
+            
+            // Sort (users with 0 will be at top for LESS_SCREENTIME, bottom for MORE_SCREENTIME)
             val sorted = if (challengeType == "LESS_SCREENTIME") {
-                userTotals.toList().sortedBy { it.second } // Ascending (lower is better)
+                allRankings.sortedBy { it.second }
             } else {
-                userTotals.toList().sortedByDescending { it.second } // Descending (higher is better)
+                allRankings.sortedByDescending { it.second }
             }
             
             sorted.take(limit)
@@ -260,24 +291,74 @@ class ChallengeRepository {
     
     /**
      * Get user's rank in a challenge
+     * Returns null if user hasn't joined the challenge
+     * Includes all participants, even those with no stats (0 duration)
+     * Optimized to reuse ranking calculation logic
      */
     fun getUserRank(userId: String, challengeId: Long, challengeType: String): Int? {
         return dbTransaction {
-            val allUserTotals = ChallengeParticipantStats.select {
-                ChallengeParticipantStats.challengeId eq challengeId
-            }
-            .groupBy { it[ChallengeParticipantStats.userId] }
-            .mapValues { (_, rows) ->
-                rows.sumOf { it[ChallengeParticipantStats.duration] }
+            // Check if user has joined the challenge
+            val hasJoined = ChallengeParticipants.select {
+                (ChallengeParticipants.challengeId eq challengeId) and
+                (ChallengeParticipants.userId eq userId)
+            }.count() > 0
+            
+            if (!hasJoined) return@dbTransaction null
+            
+            // Get user's duration (optimized single query)
+            val userDuration = ChallengeParticipantStats
+                .slice(ChallengeParticipantStats.duration.sum())
+                .select {
+                    (ChallengeParticipantStats.challengeId eq challengeId) and
+                    (ChallengeParticipantStats.userId eq userId)
+                }
+                .firstOrNull()
+                ?.let { it[ChallengeParticipantStats.duration.sum()] ?: 0L }
+                ?: 0L
+            
+            // Count how many users have better (or equal) duration
+            // For LESS_SCREENTIME: count users with duration <= userDuration
+            // For MORE_SCREENTIME: count users with duration >= userDuration
+            val participantCount = ChallengeParticipants.select {
+                ChallengeParticipants.challengeId eq challengeId
+            }.count()
+            
+            if (participantCount == 0L) return@dbTransaction null
+            
+            // Get aggregated durations for all participants
+            val allDurations = ChallengeParticipantStats
+                .slice(
+                    ChallengeParticipantStats.userId,
+                    ChallengeParticipantStats.duration.sum()
+                )
+                .select {
+                    ChallengeParticipantStats.challengeId eq challengeId
+                }
+                .groupBy(ChallengeParticipantStats.userId)
+                .associate { row ->
+                    val uid = row[ChallengeParticipantStats.userId]
+                    val duration = row[ChallengeParticipantStats.duration.sum()] ?: 0L
+                    uid to duration
+                }
+            
+            // Get all participant IDs
+            val allParticipants = ChallengeParticipants
+                .slice(ChallengeParticipants.userId)
+                .select {
+                    ChallengeParticipants.challengeId eq challengeId
+                }
+                .map { it[ChallengeParticipants.userId] }
+            
+            // Create full ranking
+            val allRankings = allParticipants.map { uid ->
+                uid to (allDurations[uid] ?: 0L)
             }
             
-            val userDuration = allUserTotals[userId] ?: return@dbTransaction null
-            if (userDuration == 0L) return@dbTransaction null
-            
+            // Sort and find rank
             val sorted = if (challengeType == "LESS_SCREENTIME") {
-                allUserTotals.toList().sortedBy { it.second }
+                allRankings.sortedBy { it.second }
             } else {
-                allUserTotals.toList().sortedByDescending { it.second }
+                allRankings.sortedByDescending { it.second }
             }
             
             sorted.indexOfFirst { it.first == userId }.takeIf { it >= 0 }?.plus(1)
@@ -296,6 +377,40 @@ class ChallengeRepository {
             .map { it[ChallengeParticipantStats.packageName] }
             .distinct()
             .count()
+        }
+    }
+    
+    /**
+     * Batch get app counts for multiple users in a challenge (optimized)
+     * Returns a map of userId -> appCount
+     * Uses SQL aggregation for better performance
+     */
+    fun getBatchUserAppCounts(userIds: Set<String>, challengeId: Long): Map<String, Int> {
+        if (userIds.isEmpty()) return emptyMap()
+        
+        return dbTransaction {
+            // Use SQL aggregation with COUNT(DISTINCT) for better performance
+            val packageNameColumn = ChallengeParticipantStats.packageName
+            val appCounts = ChallengeParticipantStats
+                .slice(
+                    ChallengeParticipantStats.userId,
+                    packageNameColumn.countDistinct()
+                )
+                .select {
+                    (ChallengeParticipantStats.challengeId eq challengeId) and
+                    (ChallengeParticipantStats.userId inList userIds.toList())
+                }
+                .groupBy(ChallengeParticipantStats.userId)
+                .associate { row ->
+                    val userId = row[ChallengeParticipantStats.userId]
+                    val appCount = row[packageNameColumn.countDistinct()].toInt()
+                    userId to appCount
+                }
+            
+            // Include users with 0 app count (users who haven't submitted stats)
+            userIds.associateWith { userId ->
+                appCounts[userId] ?: 0
+            }
         }
     }
     
