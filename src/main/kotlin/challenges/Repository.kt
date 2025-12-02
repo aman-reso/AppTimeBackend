@@ -62,6 +62,7 @@ class ChallengeRepository {
                     endTime = row[Challenges.endTime].toString(),
                     thumbnail = row[Challenges.thumbnail],
                     packageNames = row[Challenges.packageNames],
+                    scheme = row[Challenges.colorScheme],
                     participantCount = participantCounts[challengeId] ?: 0,
                     hasJoined = joinedChallengeIds.contains(challengeId)
                 )
@@ -190,6 +191,7 @@ class ChallengeRepository {
                 thumbnail = challenge[Challenges.thumbnail],
                 challengeType = challenge[Challenges.challengeType],
                 packageNames = challenge[Challenges.packageNames],
+                scheme = challenge[Challenges.colorScheme],
                 isActive = challenge[Challenges.isActive],
                 participantCount = participantCount,
                 hasJoined = hasJoined,

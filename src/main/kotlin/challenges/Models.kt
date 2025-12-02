@@ -56,6 +56,7 @@ data class ActiveChallenge(
     val endTime: String,
     val thumbnail: String? = null,
     val packageNames: String? = null, // Comma-separated package names
+    val scheme: String? = null, // Color scheme for the challenge (e.g., "blue", "purple", "green")
     val participantCount: Int = 0, // Number of participants who joined this challenge
     val hasJoined: Boolean = false
 )
@@ -132,6 +133,7 @@ data class ChallengeDetail(
     val thumbnail: String? = null,
     val challengeType: String,
     val packageNames: String? = null, // Comma-separated package names
+    val scheme: String? = null, // Color scheme for the challenge (e.g., "blue", "purple", "green")
     val isActive: Boolean,
     val participantCount: Int,
     val hasJoined: Boolean = false, // Whether the current user has joined this challenge
