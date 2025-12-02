@@ -134,6 +134,7 @@ data class ChallengeDetail(
     val packageNames: String? = null, // Comma-separated package names
     val isActive: Boolean,
     val participantCount: Int,
+    val hasJoined: Boolean = false, // Whether the current user has joined this challenge
     val createdAt: String? = null
 )
 

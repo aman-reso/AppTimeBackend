@@ -73,15 +73,17 @@ fun Application.configureChallengeRoutes() {
                 
                 /**
                  * GET /api/challenges/{challengeId}
-                 * Get challenge details including participant count (requires authentication)
+                 * Get challenge details including participant count and hasJoined flag (requires authentication)
                  * Path parameter: challengeId
+                 * Returns: Challenge details with hasJoined field indicating if current user has joined
                  */
                 get("/{challengeId}") {
                     try {
                         val challengeId = call.parameters["challengeId"]?.toLongOrNull()
                             ?: throw IllegalArgumentException("Invalid challenge ID")
                         
-                        val response = service.getChallengeDetail(challengeId)
+                        val userId = call.userId
+                        val response = service.getChallengeDetail(challengeId, userId)
                         call.respondApi(response, "Challenge details retrieved successfully")
                     } catch (e: IllegalArgumentException) {
                         call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")

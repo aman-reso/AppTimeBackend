@@ -63,9 +63,10 @@ class ChallengeService(
     
     /**
      * Get challenge detail with participant count
+     * @param userId Optional user ID to check if user has joined the challenge
      */
-    suspend fun getChallengeDetail(challengeId: Long): ChallengeDetail {
-        return repository.getChallengeDetail(challengeId)
+    suspend fun getChallengeDetail(challengeId: Long, userId: String? = null): ChallengeDetail {
+        return repository.getChallengeDetail(challengeId, userId)
             ?: throw IllegalArgumentException("Challenge not found")
     }
     
@@ -182,7 +183,6 @@ class ChallengeService(
     
     /**
      * Get challenge rankings (top 10)
-     * Optimized to minimize database queries
      */
     suspend fun getChallengeRankings(
         challengeId: Long,
@@ -194,40 +194,24 @@ class ChallengeService(
         // Get top 10 rankings
         val rankings = repository.getChallengeRankings(challengeId, challenge.challengeType, limit = 10)
         
-        // Batch fetch app counts for all ranking users to avoid N+1 queries
-        val rankingUserIds = rankings.map { it.first }.toSet()
-        
-        // Prepare user IDs for batch operations (include current user if not in rankings)
-        val allUserIdsForAppCounts = if (userId != null && !rankingUserIds.contains(userId)) {
-            rankingUserIds + userId
-        } else {
-            rankingUserIds
-        }
-        
-        val appCounts = repository.getBatchUserAppCounts(allUserIdsForAppCounts, challengeId)
-        
         // Build rank entries
-        val rankEntries = rankings.mapIndexed { index, (uid, totalDuration) ->
+        val rankEntries = rankings.mapIndexed { index, (userId, totalDuration) ->
+            val appCount = repository.getUserAppCount(userId, challengeId)
             ChallengeRankEntry(
                 rank = index + 1,
-                userId = uid,
+                userId = userId,
                 totalDuration = totalDuration,
-                appCount = appCounts[uid] ?: 0
+                appCount = appCount
             )
         }
         
-        // Get user's rank if provided (optimized - only calculate if user not in top 10)
+        // Get user's rank if provided
         val userRank = userId?.let { uid ->
-            // Check if user is already in top 10 rankings
-            val existingRank = rankEntries.firstOrNull { it.userId == uid }
-            if (existingRank != null) {
-                existingRank
-            } else {
-                // Only calculate full rank if user is not in top 10
+            val userDuration = repository.getUserChallengeDuration(uid, challengeId)
+            if (userDuration > 0) {
                 val userRankPosition = repository.getUserRank(uid, challengeId, challenge.challengeType)
                 if (userRankPosition != null) {
-                    val userDuration = repository.getUserChallengeDuration(uid, challengeId)
-                    val appCount = appCounts[uid] ?: 0
+                    val appCount = repository.getUserAppCount(uid, challengeId)
                     ChallengeRankEntry(
                         rank = userRankPosition,
                         userId = uid,
@@ -237,6 +221,8 @@ class ChallengeService(
                 } else {
                     null
                 }
+            } else {
+                null
             }
         }
         
