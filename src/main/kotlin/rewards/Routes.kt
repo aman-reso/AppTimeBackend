@@ -175,6 +175,63 @@ fun Application.configureRewardRoutes() {
                         call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve challenge rewards: ${e.message}")
                     }
                 }
+                
+                /**
+                 * GET /api/rewards/coins
+                 * Get total coins earned and coin history for the authenticated user
+                 * Query params:
+                 *   - source (optional) - Filter by coin source (CHALLENGE_WIN, DAILY_LOGIN, etc.)
+                 *   - limit (optional) - Limit number of history entries
+                 *   - offset (optional) - Offset for pagination
+                 */
+                get("/coins") {
+                    try {
+                        val userId = call.requireUserId()
+                        val source = call.request.queryParameters["source"]?.let {
+                            try {
+                                CoinSource.valueOf(it.uppercase())
+                            } catch (e: IllegalArgumentException) {
+                                null
+                            }
+                        }
+                        val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+                        val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                        
+                        val response = service.getUserCoins(
+                            userId = userId,
+                            source = source,
+                            limit = limit,
+                            offset = offset
+                        )
+                        call.respondApi(response, "User coins retrieved successfully")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve coins: ${e.message}")
+                    }
+                }
+                
+                /**
+                 * POST /api/rewards/coins/add
+                 * Add coins to the authenticated user's account
+                 * Request body: AddCoinsRequest
+                 */
+                post("/coins/add") {
+                    try {
+                        val currentUserId = call.requireUserId()
+                        val request = call.receive<AddCoinsRequest>()
+                        
+                        // Ensure user can only add coins for themselves (unless admin)
+                        if (request.userId != currentUserId) {
+                            throw IllegalArgumentException("You can only add coins for yourself")
+                        }
+                        
+                        val coin = service.addCoins(request)
+                        call.respondApi(coin, "Coins added successfully", HttpStatusCode.Created)
+                    } catch (e: IllegalArgumentException) {
+                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to add coins: ${e.message}")
+                    }
+                }
             }
         }
     }

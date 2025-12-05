@@ -133,3 +133,64 @@ data class AwardChallengeRewardsResponse(
     val message: String
 )
 
+/**
+ * Coin transaction data model
+ */
+@Serializable
+data class Coin(
+    val id: Long,
+    val userId: String,
+    val amount: Long, // Positive for earned, negative for spent
+    val source: String, // CoinSource as string
+    val description: String? = null,
+    val challengeId: Long? = null,
+    val challengeTitle: String? = null,
+    val rank: Int? = null,
+    val metadata: String? = null,
+    val expiresAt: String? = null, // ISO 8601 format, null = never expires
+    val createdAt: String // ISO 8601 format
+)
+
+/**
+ * Coin source enum - where the coins came from or went to
+ */
+@Serializable
+enum class CoinSource {
+    CHALLENGE_WIN,           // Won a challenge (rank-based)
+    CHALLENGE_PARTICIPATION, // Participated in a challenge
+    DAILY_LOGIN,             // Daily login streak
+    STREAK_MILESTONE,        // Reached a streak milestone
+    REFERRAL,                // Referred a friend
+    ACHIEVEMENT,             // Completed an achievement
+    ADMIN_GRANT,             // Admin manually granted
+    PURCHASE,                // Purchased coins
+    REDEMPTION,              // Redeemed coins for rewards
+    OTHER                    // Other activities
+}
+
+/**
+ * Request to add coins
+ */
+@Serializable
+data class AddCoinsRequest(
+    val userId: String,
+    val amount: Long,
+    val source: String, // CoinSource
+    val description: String? = null,
+    val challengeId: Long? = null,
+    val challengeTitle: String? = null,
+    val rank: Int? = null,
+    val metadata: String? = null,
+    val expiresAt: String? = null // ISO 8601 format, null = never expires
+)
+
+/**
+ * Response for user coins (total coins and coin history)
+ */
+@Serializable
+data class CoinsResponse(
+    val userId: String,
+    val totalCoins: Long = 0,
+    val coinHistory: List<Coin> = emptyList()
+)
+

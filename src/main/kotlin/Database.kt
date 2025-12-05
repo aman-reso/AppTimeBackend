@@ -12,6 +12,7 @@ import com.apptime.code.focus.FocusSessions
 import com.apptime.code.focus.FocusModeStats
 import com.apptime.code.leaderboard.LeaderboardStats
 import com.apptime.code.notifications.Notifications
+import com.apptime.code.rewards.Coins
 import com.apptime.code.rewards.Rewards
 import com.apptime.code.users.Users
 import users.TOTPVerificationSessions
@@ -154,7 +155,8 @@ object DatabaseFactory {
                 ChallengeParticipantStats,
                 
                 // Rewards module
-                Rewards
+                Rewards,
+                Coins
             )
         }
         println("✅ Database tables created/verified!")

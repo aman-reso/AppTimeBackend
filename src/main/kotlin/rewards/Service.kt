@@ -279,5 +279,65 @@ class RewardService(
             )
         }
     }
+    
+    /**
+     * Get total coins and coin history for a user
+     * Uses the dedicated coins table
+     */
+    suspend fun getUserCoins(
+        userId: String,
+        source: CoinSource? = null,
+        limit: Int? = null,
+        offset: Int = 0
+    ): CoinsResponse {
+        val totalCoins = repository.getTotalCoins(userId)
+        val coinHistory = repository.getCoinHistory(
+            userId = userId,
+            source = source,
+            limit = limit,
+            offset = offset
+        )
+        
+        return CoinsResponse(
+            userId = userId,
+            totalCoins = totalCoins,
+            coinHistory = coinHistory
+        )
+    }
+    
+    /**
+     * Add coins to a user's account
+     */
+    suspend fun addCoins(request: AddCoinsRequest): Coin {
+        // Validate coin source
+        val source = try {
+            CoinSource.valueOf(request.source.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw IllegalArgumentException("Invalid coin source: ${request.source}")
+        }
+        
+        // Parse expiration date if provided
+        val expiresAt = request.expiresAt?.let {
+            try {
+                kotlinx.datetime.Instant.parse(it)
+            } catch (e: Exception) {
+                throw IllegalArgumentException("Invalid expiration date format. Use ISO 8601 format.")
+            }
+        }
+        
+        val coinId = repository.addCoins(
+            userId = request.userId,
+            amount = request.amount,
+            source = source,
+            description = request.description,
+            challengeId = request.challengeId,
+            challengeTitle = request.challengeTitle,
+            rank = request.rank,
+            metadata = request.metadata,
+            expiresAt = expiresAt
+        )
+        
+        return repository.getCoinById(coinId)!!
+    }
 }
 
