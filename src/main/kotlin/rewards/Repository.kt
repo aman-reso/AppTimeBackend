@@ -244,5 +244,115 @@ class RewardRepository {
             }
         }
     }
+    
+    // ========== COINS METHODS ==========
+    
+    /**
+     * Add coins to a user's account
+     */
+    fun addCoins(
+        userId: String,
+        amount: Long,
+        source: CoinSource,
+        description: String? = null,
+        challengeId: Long? = null,
+        challengeTitle: String? = null,
+        rank: Int? = null,
+        metadata: String? = null,
+        expiresAt: kotlinx.datetime.Instant? = null
+    ): Long {
+        return dbTransaction {
+            Coins.insert {
+                it[Coins.userId] = userId
+                it[Coins.amount] = amount
+                it[Coins.coinSource] = source.name
+                it[Coins.description] = description
+                it[Coins.challengeId] = challengeId
+                it[Coins.challengeTitle] = challengeTitle
+                it[Coins.rank] = rank
+                it[Coins.metadata] = metadata
+                it[Coins.expiresAt] = expiresAt
+            }[Coins.id]
+        }
+    }
+    
+    /**
+     * Get total coins for a user (sum of all non-expired coin transactions)
+     */
+    fun getTotalCoins(userId: String): Long {
+        return dbTransaction {
+            val now = kotlinx.datetime.Clock.System.now()
+            Coins.select { 
+                (Coins.userId eq userId) and
+                ((Coins.expiresAt.isNull()) or (Coins.expiresAt greater now))
+            }
+                .sumOf { it[Coins.amount] }
+        }
+    }
+    
+    /**
+     * Get coin history for a user
+     */
+    fun getCoinHistory(
+        userId: String,
+        source: CoinSource? = null,
+        limit: Int? = null,
+        offset: Int = 0
+    ): List<Coin> {
+        return dbTransaction {
+            var query = Coins.select { Coins.userId eq userId }
+            
+            if (source != null) {
+                query = query.andWhere { Coins.coinSource eq source.name }
+            }
+            
+            query = query.orderBy(Coins.createdAt to SortOrder.DESC)
+            
+            if (limit != null) {
+                query = query.limit(limit, offset.toLong())
+            }
+            
+            query.map { row ->
+                Coin(
+                    id = row[Coins.id],
+                    userId = row[Coins.userId],
+                    amount = row[Coins.amount],
+                    source = row[Coins.coinSource],
+                    description = row[Coins.description],
+                    challengeId = row[Coins.challengeId],
+                    challengeTitle = row[Coins.challengeTitle],
+                    rank = row[Coins.rank],
+                    metadata = row[Coins.metadata],
+                    expiresAt = row[Coins.expiresAt]?.toString(),
+                    createdAt = row[Coins.createdAt].toString()
+                )
+            }
+        }
+    }
+    
+    /**
+     * Get coin by ID
+     */
+    fun getCoinById(coinId: Long): Coin? {
+        return dbTransaction {
+            Coins.select { Coins.id eq coinId }
+                .firstOrNull()
+                ?.let { row ->
+                    Coin(
+                        id = row[Coins.id],
+                        userId = row[Coins.userId],
+                        amount = row[Coins.amount],
+                        source = row[Coins.coinSource],
+                        description = row[Coins.description],
+                        challengeId = row[Coins.challengeId],
+                        challengeTitle = row[Coins.challengeTitle],
+                        rank = row[Coins.rank],
+                        metadata = row[Coins.metadata],
+                        expiresAt = row[Coins.expiresAt]?.toString(),
+                        createdAt = row[Coins.createdAt].toString()
+                    )
+                }
+        }
+    }
 }
 
