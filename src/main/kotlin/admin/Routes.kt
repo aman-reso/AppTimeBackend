@@ -3,6 +3,9 @@ package com.apptime.code.admin
 import com.apptime.code.common.EnvLoader
 import com.apptime.code.common.respondApi
 import com.apptime.code.common.respondError
+import com.apptime.code.rewards.RewardService
+import com.apptime.code.rewards.RewardRepository
+import com.apptime.code.rewards.TransactionStatus
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -16,6 +19,8 @@ fun Application.configureAdminRoutes() {
     val statsRepository = StatsRepository()
     val statsService = AdminService(statsRepository)
     val adminRepository = AdminRepository()
+    val rewardRepository = RewardRepository()
+    val rewardService = RewardService(rewardRepository)
     
     routing {
         route("/api/admin") {
@@ -431,6 +436,101 @@ fun Application.configureAdminRoutes() {
                         call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
                     } catch (e: Exception) {
                         call.respondError(HttpStatusCode.InternalServerError, "Failed to delete consent template: ${e.message}")
+                    }
+                }
+            }
+            
+            // Reward Catalog Management
+            route("/catalog") {
+                // Get all catalog items
+                get {
+                    try {
+                        val category = call.request.queryParameters["category"]
+                        val catalogItems = rewardService.getActiveRewardCatalog(category)
+                        call.respondApi(catalogItems, "Reward catalog retrieved successfully")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve catalog: ${e.message}")
+                    }
+                }
+                
+                // Get catalog item by ID
+                get("/{id}") {
+                    try {
+                        val id = call.parameters["id"]?.toLongOrNull()
+                            ?: throw IllegalArgumentException("Invalid catalog ID")
+                        val catalogItem = rewardService.getRewardCatalogById(id)
+                            ?: throw IllegalArgumentException("Catalog item not found")
+                        call.respondApi(catalogItem, "Catalog item retrieved successfully")
+                    } catch (e: IllegalArgumentException) {
+                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve catalog item: ${e.message}")
+                    }
+                }
+                
+                // Create catalog item
+                post {
+                    try {
+                        val request = call.receive<com.apptime.code.rewards.CreateRewardCatalogRequest>()
+                        val catalogItem = rewardService.createRewardCatalogItem(request)
+                        call.respondApi(catalogItem, "Catalog item created successfully", HttpStatusCode.Created)
+                    } catch (e: IllegalArgumentException) {
+                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to create catalog item: ${e.message}")
+                    }
+                }
+            }
+            
+            // Transaction/Order Management
+            route("/transactions") {
+                // Get all transactions
+                get {
+                    try {
+                        val status = call.request.queryParameters["status"]?.let {
+                            try {
+                                TransactionStatus.valueOf(it.uppercase())
+                            } catch (e: IllegalArgumentException) {
+                                null
+                            }
+                        }
+                        val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+                        val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                        
+                        val transactions = rewardService.getAllTransactions(status, limit, offset)
+                        call.respondApi(transactions, "Transactions retrieved successfully")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve transactions: ${e.message}")
+                    }
+                }
+                
+                // Get transaction by ID
+                get("/{id}") {
+                    try {
+                        val id = call.parameters["id"]?.toLongOrNull()
+                            ?: throw IllegalArgumentException("Invalid transaction ID")
+                        val transaction = rewardService.getTransactionById(id)
+                            ?: throw IllegalArgumentException("Transaction not found")
+                        call.respondApi(transaction, "Transaction retrieved successfully")
+                    } catch (e: IllegalArgumentException) {
+                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve transaction: ${e.message}")
+                    }
+                }
+                
+                // Update transaction status
+                put("/{id}/status") {
+                    try {
+                        val id = call.parameters["id"]?.toLongOrNull()
+                            ?: throw IllegalArgumentException("Invalid transaction ID")
+                        val request = call.receive<com.apptime.code.rewards.UpdateTransactionStatusRequest>()
+                        val transaction = rewardService.updateTransactionStatus(id, request)
+                        call.respondApi(transaction, "Transaction status updated successfully")
+                    } catch (e: IllegalArgumentException) {
+                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to update transaction status: ${e.message}")
                     }
                 }
             }

@@ -339,5 +339,167 @@ class RewardService(
         
         return repository.getCoinById(coinId)!!
     }
+    
+    // ========== REWARD CATALOG METHODS ==========
+    
+    /**
+     * Get active reward catalog items
+     */
+    suspend fun getActiveRewardCatalog(category: String? = null): List<RewardCatalogItem> {
+        return repository.getActiveRewardCatalog(category)
+    }
+    
+    /**
+     * Get reward catalog item by ID
+     */
+    suspend fun getRewardCatalogById(catalogId: Long): RewardCatalogItem? {
+        return repository.getRewardCatalogById(catalogId)
+    }
+    
+    /**
+     * Create a reward catalog item (admin)
+     */
+    suspend fun createRewardCatalogItem(request: CreateRewardCatalogRequest): RewardCatalogItem {
+        val catalogId = repository.createRewardCatalogItem(
+            title = request.title,
+            description = request.description,
+            category = request.category,
+            coinPrice = request.coinPrice,
+            imageUrl = request.imageUrl,
+            stockQuantity = request.stockQuantity,
+            isActive = request.isActive,
+            metadata = request.metadata
+        )
+        
+        return repository.getRewardCatalogById(catalogId)!!
+    }
+    
+    // ========== TRANSACTION METHODS ==========
+    
+    /**
+     * Claim a reward (create a transaction)
+     * This will:
+     * 1. Check if user has enough coins
+     * 2. Check if reward is available and in stock
+     * 3. Deduct coins from user's account
+     * 4. Create transaction
+     * 5. Update stock if applicable
+     */
+    suspend fun claimRewardCatalog(
+        userId: String,
+        request: ClaimRewardCatalogRequest
+    ): ClaimRewardCatalogResponse {
+        // Get reward catalog item
+        val catalogItem = repository.getRewardCatalogById(request.rewardCatalogId)
+            ?: throw IllegalArgumentException("Reward not found")
+        
+        if (!catalogItem.isActive) {
+            throw IllegalStateException("This reward is not currently available")
+        }
+        
+        // Check stock availability
+        if (catalogItem.stockQuantity != -1 && catalogItem.stockQuantity <= 0) {
+            throw IllegalStateException("This reward is out of stock")
+        }
+        
+        // Check if user has enough coins
+        val totalCoins = repository.getTotalCoins(userId)
+        if (totalCoins < catalogItem.coinPrice) {
+            throw IllegalStateException("Insufficient coins. You have $totalCoins coins but need ${catalogItem.coinPrice} coins")
+        }
+        
+        // Deduct coins from user's account
+        repository.addCoins(
+            userId = userId,
+            amount = -catalogItem.coinPrice, // Negative amount for deduction
+            source = CoinSource.REDEMPTION,
+            description = "Claimed reward: ${catalogItem.title}",
+            metadata = "{\"rewardCatalogId\": ${catalogItem.id}, \"transactionNumber\": \"pending\"}"
+        )
+        
+        // Create transaction
+        val (transactionId, transactionNumber) = repository.createTransaction(
+            userId = userId,
+            rewardCatalogId = catalogItem.id,
+            rewardTitle = catalogItem.title,
+            coinPrice = catalogItem.coinPrice,
+            recipientName = request.recipientName,
+            recipientPhone = request.recipientPhone,
+            recipientEmail = request.recipientEmail,
+            shippingAddress = request.shippingAddress,
+            city = request.city,
+            state = request.state,
+            postalCode = request.postalCode,
+            country = request.country
+        )
+        
+        // Update stock if not unlimited
+        if (catalogItem.stockQuantity != -1) {
+            repository.updateRewardCatalogStock(catalogItem.id, -1)
+        }
+        
+        // Get remaining coins
+        val remainingCoins = repository.getTotalCoins(userId)
+        
+        return ClaimRewardCatalogResponse(
+            transactionId = transactionId,
+            transactionNumber = transactionNumber,
+            message = "Reward claimed successfully! Your order #$transactionNumber has been placed.",
+            remainingCoins = remainingCoins
+        )
+    }
+    
+    /**
+     * Get user transactions
+     */
+    suspend fun getUserTransactions(userId: String, limit: Int? = null, offset: Int = 0): List<Transaction> {
+        return repository.getUserTransactions(userId, limit, offset)
+    }
+    
+    /**
+     * Get all transactions (admin)
+     */
+    suspend fun getAllTransactions(
+        status: TransactionStatus? = null,
+        limit: Int? = null,
+        offset: Int = 0
+    ): List<Transaction> {
+        return repository.getAllTransactions(status, limit, offset)
+    }
+    
+    /**
+     * Get transaction by ID
+     */
+    suspend fun getTransactionById(transactionId: Long): Transaction? {
+        return repository.getTransactionById(transactionId)
+    }
+    
+    /**
+     * Update transaction status (admin)
+     */
+    suspend fun updateTransactionStatus(
+        transactionId: Long,
+        request: UpdateTransactionStatusRequest
+    ): Transaction {
+        // Validate status
+        val status = try {
+            TransactionStatus.valueOf(request.status.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw IllegalArgumentException("Invalid transaction status: ${request.status}")
+        }
+        
+        val success = repository.updateTransactionStatus(
+            transactionId = transactionId,
+            status = status,
+            adminNotes = request.adminNotes,
+            trackingNumber = request.trackingNumber
+        )
+        
+        if (!success) {
+            throw IllegalStateException("Failed to update transaction status")
+        }
+        
+        return repository.getTransactionById(transactionId)!!
+    }
 }
 

@@ -354,5 +354,315 @@ class RewardRepository {
                 }
         }
     }
+    
+    // ========== REWARD CATALOG METHODS ==========
+    
+    /**
+     * Get all active reward catalog items
+     */
+    fun getActiveRewardCatalog(category: String? = null): List<RewardCatalogItem> {
+        return dbTransaction {
+            var query = RewardCatalog.select { RewardCatalog.isActive eq true }
+            
+            if (category != null) {
+                query = query.andWhere { RewardCatalog.category eq category }
+            }
+            
+            query.orderBy(RewardCatalog.createdAt to SortOrder.DESC)
+                .map { row ->
+                    RewardCatalogItem(
+                        id = row[RewardCatalog.id],
+                        title = row[RewardCatalog.title],
+                        description = row[RewardCatalog.description],
+                        category = row[RewardCatalog.category],
+                        coinPrice = row[RewardCatalog.coinPrice],
+                        imageUrl = row[RewardCatalog.imageUrl],
+                        stockQuantity = row[RewardCatalog.stockQuantity],
+                        isActive = row[RewardCatalog.isActive],
+                        metadata = row[RewardCatalog.metadata],
+                        createdAt = row[RewardCatalog.createdAt].toString(),
+                        updatedAt = row[RewardCatalog.updatedAt].toString()
+                    )
+                }
+        }
+    }
+    
+    /**
+     * Get reward catalog item by ID
+     */
+    fun getRewardCatalogById(catalogId: Long): RewardCatalogItem? {
+        return dbTransaction {
+            RewardCatalog.select { RewardCatalog.id eq catalogId }
+                .firstOrNull()
+                ?.let { row ->
+                    RewardCatalogItem(
+                        id = row[RewardCatalog.id],
+                        title = row[RewardCatalog.title],
+                        description = row[RewardCatalog.description],
+                        category = row[RewardCatalog.category],
+                        coinPrice = row[RewardCatalog.coinPrice],
+                        imageUrl = row[RewardCatalog.imageUrl],
+                        stockQuantity = row[RewardCatalog.stockQuantity],
+                        isActive = row[RewardCatalog.isActive],
+                        metadata = row[RewardCatalog.metadata],
+                        createdAt = row[RewardCatalog.createdAt].toString(),
+                        updatedAt = row[RewardCatalog.updatedAt].toString()
+                    )
+                }
+        }
+    }
+    
+    /**
+     * Create a reward catalog item
+     */
+    fun createRewardCatalogItem(
+        title: String,
+        description: String? = null,
+        category: String? = null,
+        coinPrice: Long,
+        imageUrl: String? = null,
+        stockQuantity: Int = -1,
+        isActive: Boolean = true,
+        metadata: String? = null
+    ): Long {
+        return dbTransaction {
+            RewardCatalog.insert {
+                it[RewardCatalog.title] = title
+                it[RewardCatalog.description] = description
+                it[RewardCatalog.category] = category
+                it[RewardCatalog.coinPrice] = coinPrice
+                it[RewardCatalog.imageUrl] = imageUrl
+                it[RewardCatalog.stockQuantity] = stockQuantity
+                it[RewardCatalog.isActive] = isActive
+                it[RewardCatalog.metadata] = metadata
+                it[RewardCatalog.updatedAt] = kotlinx.datetime.Clock.System.now()
+            }[RewardCatalog.id]
+        }
+    }
+    
+    /**
+     * Update reward catalog item stock
+     */
+    fun updateRewardCatalogStock(catalogId: Long, quantityChange: Int): Boolean {
+        return dbTransaction {
+            val item = RewardCatalog.select { RewardCatalog.id eq catalogId }.firstOrNull()
+            if (item == null) {
+                false
+            } else {
+                val currentStock = item[RewardCatalog.stockQuantity]
+                // Only update if not unlimited (-1)
+                if (currentStock == -1) {
+                    true // Unlimited stock, no update needed
+                } else {
+                    val newStock = (currentStock + quantityChange).coerceAtLeast(0)
+                    RewardCatalog.update({ RewardCatalog.id eq catalogId }) {
+                        it[RewardCatalog.stockQuantity] = newStock
+                        it[RewardCatalog.updatedAt] = kotlinx.datetime.Clock.System.now()
+                    }
+                    true
+                }
+            }
+        }
+    }
+    
+    // ========== TRANSACTION METHODS ==========
+    
+    /**
+     * Create a transaction (user claims a reward)
+     */
+    fun createTransaction(
+        userId: String,
+        rewardCatalogId: Long,
+        rewardTitle: String,
+        coinPrice: Long,
+        recipientName: String,
+        recipientPhone: String? = null,
+        recipientEmail: String? = null,
+        shippingAddress: String,
+        city: String? = null,
+        state: String? = null,
+        postalCode: String? = null,
+        country: String? = null
+    ): Pair<Long, String> {
+        return dbTransaction {
+            // Generate unique transaction number
+            val transactionNumber = "TXN-${System.currentTimeMillis()}-${userId.take(8).uppercase()}"
+            
+            val transactionId = Transactions.insert {
+                it[Transactions.userId] = userId
+                it[Transactions.rewardCatalogId] = rewardCatalogId
+                it[Transactions.rewardTitle] = rewardTitle
+                it[Transactions.coinPrice] = coinPrice
+                it[Transactions.status] = TransactionStatus.PENDING.name
+                it[Transactions.transactionNumber] = transactionNumber
+                it[Transactions.recipientName] = recipientName
+                it[Transactions.recipientPhone] = recipientPhone
+                it[Transactions.recipientEmail] = recipientEmail
+                it[Transactions.shippingAddress] = shippingAddress
+                it[Transactions.city] = city
+                it[Transactions.state] = state
+                it[Transactions.postalCode] = postalCode
+                it[Transactions.country] = country
+                it[Transactions.updatedAt] = kotlinx.datetime.Clock.System.now()
+            }[Transactions.id]
+            
+            transactionId to transactionNumber
+        }
+    }
+    
+    /**
+     * Get transactions for a user
+     */
+    fun getUserTransactions(userId: String, limit: Int? = null, offset: Int = 0): List<Transaction> {
+        return dbTransaction {
+            var query = Transactions.select { Transactions.userId eq userId }
+                .orderBy(Transactions.createdAt to SortOrder.DESC)
+            
+            if (limit != null) {
+                query = query.limit(limit, offset.toLong())
+            }
+            
+            query.map { row ->
+                Transaction(
+                    id = row[Transactions.id],
+                    userId = row[Transactions.userId],
+                    rewardCatalogId = row[Transactions.rewardCatalogId],
+                    rewardTitle = row[Transactions.rewardTitle],
+                    coinPrice = row[Transactions.coinPrice],
+                    status = row[Transactions.status],
+                    transactionNumber = row[Transactions.transactionNumber],
+                    recipientName = row[Transactions.recipientName],
+                    recipientPhone = row[Transactions.recipientPhone],
+                    recipientEmail = row[Transactions.recipientEmail],
+                    shippingAddress = row[Transactions.shippingAddress],
+                    city = row[Transactions.city],
+                    state = row[Transactions.state],
+                    postalCode = row[Transactions.postalCode],
+                    country = row[Transactions.country],
+                    adminNotes = row[Transactions.adminNotes],
+                    trackingNumber = row[Transactions.trackingNumber],
+                    shippedAt = row[Transactions.shippedAt]?.toString(),
+                    deliveredAt = row[Transactions.deliveredAt]?.toString(),
+                    createdAt = row[Transactions.createdAt].toString(),
+                    updatedAt = row[Transactions.updatedAt].toString()
+                )
+            }
+        }
+    }
+    
+    /**
+     * Get all transactions (admin)
+     */
+    fun getAllTransactions(
+        status: TransactionStatus? = null,
+        limit: Int? = null,
+        offset: Int = 0
+    ): List<Transaction> {
+        return dbTransaction {
+            var query = Transactions.selectAll()
+            
+            if (status != null) {
+                query = query.andWhere { Transactions.status eq status.name }
+            }
+            
+            query = query.orderBy(Transactions.createdAt to SortOrder.DESC)
+            
+            if (limit != null) {
+                query = query.limit(limit, offset.toLong())
+            }
+            
+            query.map { row ->
+                Transaction(
+                    id = row[Transactions.id],
+                    userId = row[Transactions.userId],
+                    rewardCatalogId = row[Transactions.rewardCatalogId],
+                    rewardTitle = row[Transactions.rewardTitle],
+                    coinPrice = row[Transactions.coinPrice],
+                    status = row[Transactions.status],
+                    transactionNumber = row[Transactions.transactionNumber],
+                    recipientName = row[Transactions.recipientName],
+                    recipientPhone = row[Transactions.recipientPhone],
+                    recipientEmail = row[Transactions.recipientEmail],
+                    shippingAddress = row[Transactions.shippingAddress],
+                    city = row[Transactions.city],
+                    state = row[Transactions.state],
+                    postalCode = row[Transactions.postalCode],
+                    country = row[Transactions.country],
+                    adminNotes = row[Transactions.adminNotes],
+                    trackingNumber = row[Transactions.trackingNumber],
+                    shippedAt = row[Transactions.shippedAt]?.toString(),
+                    deliveredAt = row[Transactions.deliveredAt]?.toString(),
+                    createdAt = row[Transactions.createdAt].toString(),
+                    updatedAt = row[Transactions.updatedAt].toString()
+                )
+            }
+        }
+    }
+    
+    /**
+     * Get transaction by ID
+     */
+    fun getTransactionById(transactionId: Long): Transaction? {
+        return dbTransaction {
+            Transactions.select { Transactions.id eq transactionId }
+                .firstOrNull()
+                ?.let { row ->
+                    Transaction(
+                        id = row[Transactions.id],
+                        userId = row[Transactions.userId],
+                        rewardCatalogId = row[Transactions.rewardCatalogId],
+                        rewardTitle = row[Transactions.rewardTitle],
+                        coinPrice = row[Transactions.coinPrice],
+                        status = row[Transactions.status],
+                        transactionNumber = row[Transactions.transactionNumber],
+                        recipientName = row[Transactions.recipientName],
+                        recipientPhone = row[Transactions.recipientPhone],
+                        recipientEmail = row[Transactions.recipientEmail],
+                        shippingAddress = row[Transactions.shippingAddress],
+                        city = row[Transactions.city],
+                        state = row[Transactions.state],
+                        postalCode = row[Transactions.postalCode],
+                        country = row[Transactions.country],
+                        adminNotes = row[Transactions.adminNotes],
+                        trackingNumber = row[Transactions.trackingNumber],
+                        shippedAt = row[Transactions.shippedAt]?.toString(),
+                        deliveredAt = row[Transactions.deliveredAt]?.toString(),
+                        createdAt = row[Transactions.createdAt].toString(),
+                        updatedAt = row[Transactions.updatedAt].toString()
+                    )
+                }
+        }
+    }
+    
+    /**
+     * Update transaction status (admin)
+     */
+    fun updateTransactionStatus(
+        transactionId: Long,
+        status: TransactionStatus,
+        adminNotes: String? = null,
+        trackingNumber: String? = null
+    ): Boolean {
+        return dbTransaction {
+            val now = kotlinx.datetime.Clock.System.now()
+            Transactions.update({ Transactions.id eq transactionId }) {
+                it[Transactions.status] = status.name
+                it[Transactions.adminNotes] = adminNotes
+                it[Transactions.trackingNumber] = trackingNumber
+                it[Transactions.updatedAt] = now
+                
+                // Set shippedAt when status changes to SHIPPED
+                if (status == TransactionStatus.SHIPPED && trackingNumber != null) {
+                    it[Transactions.shippedAt] = now
+                }
+                
+                // Set deliveredAt when status changes to DELIVERED
+                if (status == TransactionStatus.DELIVERED) {
+                    it[Transactions.deliveredAt] = now
+                }
+            }
+            true
+        }
+    }
 }
 

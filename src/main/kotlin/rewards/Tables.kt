@@ -57,3 +57,67 @@ object Coins : Table("coins") {
     }
 }
 
+/**
+ * Reward Catalog table - stores available products/rewards that users can claim
+ */
+object RewardCatalog : Table("reward_catalog") {
+    val id = long("id").autoIncrement()
+    val title = varchar("title", 255)
+    val description = text("description").nullable()
+    val category = varchar("category", 100).nullable() // e.g., "Electronics", "Vouchers", "Merchandise"
+    val coinPrice = long("coin_price") // Price in coins
+    val imageUrl = varchar("image_url", 500).nullable()
+    val stockQuantity = integer("stock_quantity").default(0) // Available quantity (-1 for unlimited)
+    val isActive = bool("is_active").default(true)
+    val metadata = text("metadata").nullable() // JSON string for additional product data
+    val createdAt = timestamp("created_at").clientDefault { kotlinx.datetime.Clock.System.now() }
+    val updatedAt = timestamp("updated_at").clientDefault { kotlinx.datetime.Clock.System.now() }
+    
+    override val primaryKey = PrimaryKey(id)
+    
+    init {
+        index(isUnique = false, category)
+        index(isUnique = false, isActive)
+    }
+}
+
+/**
+ * Transactions table - stores user reward claims/orders
+ */
+object Transactions : Table("transactions") {
+    val id = long("id").autoIncrement()
+    val userId = varchar("user_id", 255).index()
+    val rewardCatalogId = long("reward_catalog_id").references(RewardCatalog.id)
+    val rewardTitle = varchar("reward_title", 255) // Snapshot of reward title at time of purchase
+    val coinPrice = long("coin_price") // Snapshot of price at time of purchase
+    val status = varchar("status", 50).default("PENDING") // PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+    val transactionNumber = varchar("transaction_number", 100).uniqueIndex() // Unique transaction ID
+    
+    // Shipping information
+    val recipientName = varchar("recipient_name", 255)
+    val recipientPhone = varchar("recipient_phone", 50).nullable()
+    val recipientEmail = varchar("recipient_email", 255).nullable()
+    val shippingAddress = text("shipping_address") // Full address
+    val city = varchar("city", 100).nullable()
+    val state = varchar("state", 100).nullable()
+    val postalCode = varchar("postal_code", 20).nullable()
+    val country = varchar("country", 100).nullable()
+    
+    // Admin notes
+    val adminNotes = text("admin_notes").nullable()
+    val trackingNumber = varchar("tracking_number", 100).nullable()
+    val shippedAt = timestamp("shipped_at").nullable()
+    val deliveredAt = timestamp("delivered_at").nullable()
+    
+    val createdAt = timestamp("created_at").clientDefault { kotlinx.datetime.Clock.System.now() }
+    val updatedAt = timestamp("updated_at").clientDefault { kotlinx.datetime.Clock.System.now() }
+    
+    override val primaryKey = PrimaryKey(id)
+    
+    init {
+        index(isUnique = false, userId, createdAt)
+        index(isUnique = false, status)
+        index(isUnique = false, rewardCatalogId)
+    }
+}
+

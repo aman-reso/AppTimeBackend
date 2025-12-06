@@ -232,6 +232,111 @@ fun Application.configureRewardRoutes() {
                         call.respondError(HttpStatusCode.InternalServerError, "Failed to add coins: ${e.message}")
                     }
                 }
+                
+                // ========== REWARD CATALOG ROUTES ==========
+                
+                /**
+                 * GET /api/rewards/catalog
+                 * Get all active reward catalog items
+                 * Query params:
+                 *   - category (optional) - Filter by category
+                 */
+                get("/catalog") {
+                    try {
+                        val category = call.request.queryParameters["category"]
+                        val catalogItems = service.getActiveRewardCatalog(category)
+                        call.respondApi(catalogItems, "Reward catalog retrieved successfully")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve catalog: ${e.message}")
+                    }
+                }
+                
+                /**
+                 * GET /api/rewards/catalog/{catalogId}
+                 * Get a specific reward catalog item
+                 */
+                get("/catalog/{catalogId}") {
+                    try {
+                        val catalogId = call.parameters["catalogId"]?.toLongOrNull()
+                            ?: throw IllegalArgumentException("Invalid catalog ID")
+                        
+                        val catalogItem = service.getRewardCatalogById(catalogId)
+                            ?: throw IllegalArgumentException("Reward not found")
+                        
+                        call.respondApi(catalogItem, "Reward catalog item retrieved successfully")
+                    } catch (e: IllegalArgumentException) {
+                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve catalog item: ${e.message}")
+                    }
+                }
+                
+                /**
+                 * POST /api/rewards/catalog/claim
+                 * Claim a reward (create a transaction)
+                 * Request body: ClaimRewardCatalogRequest
+                 */
+                post("/catalog/claim") {
+                    try {
+                        val userId = call.requireUserId()
+                        val request = call.receive<ClaimRewardCatalogRequest>()
+                        
+                        val response = service.claimRewardCatalog(userId, request)
+                        call.respondApi(response, response.message, HttpStatusCode.Created)
+                    } catch (e: IllegalArgumentException) {
+                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
+                    } catch (e: IllegalStateException) {
+                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Cannot claim reward")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to claim reward: ${e.message}")
+                    }
+                }
+                
+                /**
+                 * GET /api/rewards/transactions
+                 * Get user's transaction history
+                 * Query params:
+                 *   - limit (optional) - Limit number of results
+                 *   - offset (optional) - Offset for pagination
+                 */
+                get("/transactions") {
+                    try {
+                        val userId = call.requireUserId()
+                        val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+                        val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                        
+                        val transactions = service.getUserTransactions(userId, limit, offset)
+                        call.respondApi(transactions, "Transactions retrieved successfully")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve transactions: ${e.message}")
+                    }
+                }
+                
+                /**
+                 * GET /api/rewards/transactions/{transactionId}
+                 * Get a specific transaction
+                 */
+                get("/transactions/{transactionId}") {
+                    try {
+                        val userId = call.requireUserId()
+                        val transactionId = call.parameters["transactionId"]?.toLongOrNull()
+                            ?: throw IllegalArgumentException("Invalid transaction ID")
+                        
+                        val transaction = service.getTransactionById(transactionId)
+                            ?: throw IllegalArgumentException("Transaction not found")
+                        
+                        // Ensure user can only view their own transactions
+                        if (transaction.userId != userId) {
+                            throw IllegalArgumentException("Transaction not found")
+                        }
+                        
+                        call.respondApi(transaction, "Transaction retrieved successfully")
+                    } catch (e: IllegalArgumentException) {
+                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve transaction: ${e.message}")
+                    }
+                }
             }
         }
     }

@@ -13,7 +13,9 @@ import com.apptime.code.focus.FocusModeStats
 import com.apptime.code.leaderboard.LeaderboardStats
 import com.apptime.code.notifications.Notifications
 import com.apptime.code.rewards.Coins
+import com.apptime.code.rewards.RewardCatalog
 import com.apptime.code.rewards.Rewards
+import com.apptime.code.rewards.Transactions
 import com.apptime.code.users.Users
 import users.TOTPVerificationSessions
 import com.zaxxer.hikari.HikariConfig
@@ -156,7 +158,9 @@ object DatabaseFactory {
                 
                 // Rewards module
                 Rewards,
-                Coins
+                Coins,
+                RewardCatalog,
+                Transactions
             )
         }
         println("✅ Database tables created/verified!")
