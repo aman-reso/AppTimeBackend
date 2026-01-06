@@ -17,7 +17,9 @@ class AppUsageEventRepository {
         isSystemApp: Boolean,
         eventType: String,
         eventTimestamp: Instant,
-        duration: Long? = null
+        duration: Long? = null,
+        startTime: Long? = null,
+        endTime: Long? = null
     ): AppUsageEvent {
         return dbTransaction {
             AppUsageEvents.insert {
@@ -28,6 +30,8 @@ class AppUsageEventRepository {
                 it[AppUsageEvents.eventType] = eventType
                 it[AppUsageEvents.eventTimestamp] = eventTimestamp
                 it[AppUsageEvents.duration] = duration
+                it[AppUsageEvents.startTime] = startTime
+                it[AppUsageEvents.endTime] = endTime
             }
             
             // Get the inserted record
@@ -48,6 +52,8 @@ class AppUsageEventRepository {
                 eventType = record[AppUsageEvents.eventType],
                 eventTimestamp = record[AppUsageEvents.eventTimestamp].toString(),
                 duration = record[AppUsageEvents.duration],
+                startTime = record[AppUsageEvents.startTime],
+                endTime = record[AppUsageEvents.endTime],
                 createdAt = record[AppUsageEvents.createdAt].toString()
             )
         }
@@ -72,6 +78,8 @@ class AppUsageEventRepository {
                     it[AppUsageEvents.eventType] = event.eventType
                     it[AppUsageEvents.eventTimestamp] = eventTimestamp
                     it[AppUsageEvents.duration] = event.duration
+                    it[AppUsageEvents.startTime] = event.startTime
+                    it[AppUsageEvents.endTime] = event.endTime
                 }
                 
                 // Get the inserted record

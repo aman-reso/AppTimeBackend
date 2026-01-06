@@ -163,6 +163,8 @@ class UsageStatsRepository {
                             eventType = event[AppUsageEvents.eventType],
                             eventTimestamp = event[AppUsageEvents.eventTimestamp].toString(),
                             duration = event[AppUsageEvents.duration],
+                            startTime = event[AppUsageEvents.startTime],
+                            endTime = event[AppUsageEvents.endTime],
                             createdAt = event[AppUsageEvents.createdAt].toString()
                         )
                     }

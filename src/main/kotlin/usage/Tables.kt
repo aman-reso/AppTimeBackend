@@ -16,6 +16,8 @@ object AppUsageEvents : Table("app_usage_events") {
     val eventType = varchar("event_type", 100) // e.g. MOVE_TO_FOREGROUND, MOVE_TO_BACKGROUND, APP_LAUNCHED, APP_CLOSED
     val eventTimestamp = timestamp("event_timestamp")
     val duration = long("duration").nullable() // Optional duration in milliseconds
+    val startTime = long("start_time").nullable() // Optional start time in milliseconds
+    val endTime = long("end_time").nullable() // Optional end time in milliseconds
     val createdAt = timestamp("created_at").clientDefault { kotlinx.datetime.Clock.System.now() }
     
     override val primaryKey = PrimaryKey(id)

@@ -71,7 +71,9 @@ class AppUsageEventService(
             isSystemApp = request.isSystemApp,
             eventType = request.eventType,
             eventTimestamp = eventTimestamp,
-            duration = duration ?: request.duration
+            duration = duration ?: request.duration,
+            startTime = request.startTime,
+            endTime = request.endTime
         )
     }
     
