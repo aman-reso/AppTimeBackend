@@ -6,6 +6,7 @@ import com.apptime.code.challenges.configureChallengeRoutes
 import com.apptime.code.common.configureAuthentication
 import com.apptime.code.common.configureHeaderTracking
 import com.apptime.code.consents.configureConsentRoutes
+import com.apptime.code.features.configureFeatureFlagsRoutes
 import com.apptime.code.focus.configureFocusRoutes
 import com.apptime.code.leaderboard.configureLeaderboardRoutes
 import com.apptime.code.rewards.configureRewardRoutes
@@ -42,6 +43,7 @@ fun Application.module() {
     configureLeaderboardRoutes()
     configureChallengeRoutes()
     configureRewardRoutes()
+    configureFeatureFlagsRoutes()
     configureAdminRoutes()
     
     // Configure scheduled jobs (cronjobs)

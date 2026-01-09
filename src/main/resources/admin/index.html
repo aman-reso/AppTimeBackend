@@ -531,6 +531,7 @@
                 <button class="tab" onclick="showTab('users')">👥 Users</button>
                 <button class="tab" onclick="showTab('consents')">📝 Consents</button>
                 <button class="tab" onclick="showTab('rewards')">🎁 Rewards</button>
+                <button class="tab" onclick="showTab('features')">🚩 Feature Flags</button>
             </div>
 
             <div id="error-message" class="error" style="display: none;"></div>
@@ -583,6 +584,17 @@
                     <button class="btn btn-primary" onclick="showRewardModal()">+ Create Reward</button>
                 </div>
                 <div id="rewards-content" class="loading">Loading rewards...</div>
+            </div>
+        </div>
+
+        <!-- Feature Flags Tab -->
+        <div id="features" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>Feature Flags Management</h2>
+                    <button class="btn btn-primary" onclick="showFeatureModal()">+ Create Feature Flag</button>
+                </div>
+                <div id="features-content" class="loading">Loading feature flags...</div>
             </div>
         </div>
         </div>
@@ -794,6 +806,66 @@
         </div>
     </div>
 
+    <!-- Feature Flag Modal -->
+    <div id="featureModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 id="featureModalTitle">Create Feature Flag</h3>
+                <button class="close" onclick="closeFeatureModal()">&times;</button>
+            </div>
+            <form id="featureForm" onsubmit="saveFeature(event)">
+                <input type="hidden" id="featureId">
+                <div class="form-group">
+                    <label>Feature Name *</label>
+                    <input type="text" id="featureName" required placeholder="e.g., challenges, rewards, leaderboard">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="featureDescription" placeholder="Describe what this feature flag controls"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="featureIsEnabled"> Enabled
+                    </label>
+                </div>
+                
+                <h4 style="margin: 20px 0 10px 0; color: var(--text-primary); border-bottom: 2px solid var(--border-color); padding-bottom: 10px;">Conditions (Optional)</h4>
+                <p style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 20px;">Leave empty to apply to all users. If conditions are set, all must match for the feature to be enabled.</p>
+                
+                <div class="form-group">
+                    <label>Countries (ISO codes, comma-separated)</label>
+                    <input type="text" id="featureCountries" placeholder="e.g., US,IN,GB">
+                    <small style="color: var(--text-secondary); font-size: 0.85em;">ISO country codes (e.g., US, IN, GB)</small>
+                </div>
+                <div class="form-group">
+                    <label>App Versions (constraints, comma-separated)</label>
+                    <input type="text" id="featureAppVersions" placeholder="e.g., >=1.0.0,<2.0.0">
+                    <small style="color: var(--text-secondary); font-size: 0.85em;">Version constraints: >=1.0.0, <=2.0.0, =1.5.0, etc.</small>
+                </div>
+                <div class="form-group">
+                    <label>Languages (codes, comma-separated)</label>
+                    <input type="text" id="featureLanguages" placeholder="e.g., en,es,fr">
+                    <small style="color: var(--text-secondary); font-size: 0.85em;">Language codes (e.g., en, es, fr)</small>
+                </div>
+                <div class="form-group">
+                    <label>User IDs (for beta testing, comma-separated)</label>
+                    <input type="text" id="featureUserIds" placeholder="e.g., user1,user2,user3">
+                    <small style="color: var(--text-secondary); font-size: 0.85em;">Specific user IDs for beta testing</small>
+                </div>
+                <div class="form-group">
+                    <label>Percentage Rollout (0-100)</label>
+                    <input type="number" id="featurePercentage" min="0" max="100" placeholder="e.g., 50">
+                    <small style="color: var(--text-secondary); font-size: 0.85em;">Percentage of users to enable feature for (0-100)</small>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeFeatureModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Reward Modal -->
     <div id="rewardModal" class="modal">
         <div class="modal-content">
@@ -879,6 +951,7 @@
         let currentEditingConsent = null;
         let currentEditingUser = null;
         let currentEditingReward = null;
+        let currentEditingFeature = null;
 
         // Theme Management
         function getTheme() {
@@ -1021,6 +1094,7 @@
             if (tabName === 'users') loadUsers();
             if (tabName === 'consents') loadConsents();
             if (tabName === 'rewards') loadRewards();
+            if (tabName === 'features') loadFeatures();
         }
 
         function showMessage(message, type = 'error') {
@@ -1730,6 +1804,232 @@
                     loadRewards();
                 } else {
                     showMessage(result.message || 'Failed to delete reward');
+                }
+            } catch (err) {
+                showMessage(`Error: ${err.message}`);
+            }
+        }
+
+        // Feature Flags Management
+        async function loadFeatures() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/features`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    displayFeatures(result.data);
+                } else {
+                    showMessage(result.message || 'Failed to load feature flags');
+                }
+            } catch (err) {
+                showMessage(`Error loading feature flags: ${err.message}`);
+            }
+        }
+
+        function displayFeatures(features) {
+            if (features.length === 0) {
+                document.getElementById('features-content').innerHTML = '<p>No feature flags found. Create one to get started!</p>';
+                return;
+            }
+            const html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Feature Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Conditions</th>
+                            <th>Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${features.map(f => {
+                            const conditions = f.conditions || {};
+                            const conditionsText = [];
+                            if (conditions.countries && conditions.countries.length > 0) {
+                                conditionsText.push(`Countries: ${conditions.countries.join(', ')}`);
+                            }
+                            if (conditions.appVersions && conditions.appVersions.length > 0) {
+                                conditionsText.push(`Versions: ${conditions.appVersions.join(', ')}`);
+                            }
+                            if (conditions.languages && conditions.languages.length > 0) {
+                                conditionsText.push(`Languages: ${conditions.languages.join(', ')}`);
+                            }
+                            if (conditions.userIds && conditions.userIds.length > 0) {
+                                conditionsText.push(`Users: ${conditions.userIds.length} user(s)`);
+                            }
+                            if (conditions.percentage !== null && conditions.percentage !== undefined) {
+                                conditionsText.push(`Rollout: ${conditions.percentage}%`);
+                            }
+                            const conditionsDisplay = conditionsText.length > 0 
+                                ? conditionsText.join('<br>') 
+                                : '<em style="color: var(--text-secondary);">No conditions (applies to all)</em>';
+                            
+                            return `
+                            <tr>
+                                <td>${f.id}</td>
+                                <td><strong>${f.featureName}</strong></td>
+                                <td>${f.description || 'N/A'}</td>
+                                <td><span class="badge ${f.isEnabled ? 'active' : 'inactive'}">${f.isEnabled ? 'Enabled' : 'Disabled'}</span></td>
+                                <td style="font-size: 0.85em;">${conditionsDisplay}</td>
+                                <td>${new Date(f.updatedAt).toLocaleString()}</td>
+                                <td class="actions">
+                                    <button class="btn btn-primary btn-sm" onclick="editFeature('${f.featureName}')">Edit</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteFeature('${f.featureName}')">Delete</button>
+                                </td>
+                            </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('features-content').innerHTML = html;
+        }
+
+        function showFeatureModal(feature = null) {
+            currentEditingFeature = feature;
+            const modal = document.getElementById('featureModal');
+            const form = document.getElementById('featureForm');
+            const title = document.getElementById('featureModalTitle');
+            
+            if (feature) {
+                title.textContent = 'Edit Feature Flag';
+                document.getElementById('featureId').value = feature.id;
+                document.getElementById('featureName').value = feature.featureName;
+                document.getElementById('featureName').disabled = true; // Don't allow editing name
+                document.getElementById('featureDescription').value = feature.description || '';
+                document.getElementById('featureIsEnabled').checked = feature.isEnabled;
+                
+                // Set conditions
+                const conditions = feature.conditions || {};
+                document.getElementById('featureCountries').value = conditions.countries ? conditions.countries.join(',') : '';
+                document.getElementById('featureAppVersions').value = conditions.appVersions ? conditions.appVersions.join(',') : '';
+                document.getElementById('featureLanguages').value = conditions.languages ? conditions.languages.join(',') : '';
+                document.getElementById('featureUserIds').value = conditions.userIds ? conditions.userIds.join(',') : '';
+                document.getElementById('featurePercentage').value = conditions.percentage !== null && conditions.percentage !== undefined ? conditions.percentage : '';
+            } else {
+                title.textContent = 'Create Feature Flag';
+                form.reset();
+                document.getElementById('featureId').value = '';
+                document.getElementById('featureName').disabled = false;
+            }
+            modal.classList.add('active');
+        }
+
+        function closeFeatureModal() {
+            document.getElementById('featureModal').classList.remove('active');
+            currentEditingFeature = null;
+        }
+
+        async function saveFeature(event) {
+            event.preventDefault();
+            const id = document.getElementById('featureId').value;
+            const featureName = document.getElementById('featureName').value;
+            
+            // Build conditions object
+            const conditions = {};
+            const countries = document.getElementById('featureCountries').value.trim();
+            const appVersions = document.getElementById('featureAppVersions').value.trim();
+            const languages = document.getElementById('featureLanguages').value.trim();
+            const userIds = document.getElementById('featureUserIds').value.trim();
+            const percentage = document.getElementById('featurePercentage').value.trim();
+            
+            if (countries) {
+                conditions.countries = countries.split(',').map(c => c.trim().toUpperCase()).filter(c => c);
+            }
+            if (appVersions) {
+                conditions.appVersions = appVersions.split(',').map(v => v.trim()).filter(v => v);
+            }
+            if (languages) {
+                conditions.languages = languages.split(',').map(l => l.trim().toLowerCase()).filter(l => l);
+            }
+            if (userIds) {
+                conditions.userIds = userIds.split(',').map(u => u.trim()).filter(u => u);
+            }
+            if (percentage) {
+                const pct = parseInt(percentage);
+                if (!isNaN(pct) && pct >= 0 && pct <= 100) {
+                    conditions.percentage = pct;
+                }
+            }
+            
+            // Only include conditions if at least one is set
+            const hasConditions = Object.keys(conditions).length > 0;
+            
+            const data = {
+                isEnabled: document.getElementById('featureIsEnabled').checked,
+                description: document.getElementById('featureDescription').value || null,
+                conditions: hasConditions ? conditions : null
+            };
+
+            try {
+                if (id) {
+                    // Update existing feature
+                    const response = await fetch(`${API_BASE}/api/admin/features/${featureName}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showMessage(result.message || 'Feature flag updated successfully', 'success');
+                        closeFeatureModal();
+                        loadFeatures();
+                    } else {
+                        showMessage(result.message || 'Failed to update feature flag');
+                    }
+                } else {
+                    // Create new feature
+                    const createData = {
+                        featureName: featureName,
+                        ...data
+                    };
+                    const response = await fetch(`${API_BASE}/api/admin/features`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(createData)
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showMessage(result.message || 'Feature flag created successfully', 'success');
+                        closeFeatureModal();
+                        loadFeatures();
+                    } else {
+                        showMessage(result.message || 'Failed to create feature flag');
+                    }
+                }
+            } catch (err) {
+                showMessage(`Error: ${err.message}`);
+            }
+        }
+
+        async function editFeature(featureName) {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/features/${featureName}`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    showFeatureModal(result.data);
+                } else {
+                    showMessage(result.message || 'Failed to load feature flag');
+                }
+            } catch (err) {
+                showMessage(`Error: ${err.message}`);
+            }
+        }
+
+        async function deleteFeature(featureName) {
+            if (!confirm(`Are you sure you want to delete the feature flag "${featureName}"?`)) return;
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/features/${featureName}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('Feature flag deleted successfully', 'success');
+                    loadFeatures();
+                } else {
+                    showMessage(result.message || 'Failed to delete feature flag');
                 }
             } catch (err) {
                 showMessage(`Error: ${err.message}`);

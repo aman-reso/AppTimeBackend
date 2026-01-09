@@ -8,14 +8,13 @@ import com.apptime.code.common.EnvLoader
 import com.apptime.code.consents.ConsentSeedData
 import com.apptime.code.consents.ConsentTemplates
 import com.apptime.code.consents.UserConsents
+import com.apptime.code.features.FeatureFlags
 import com.apptime.code.focus.FocusSessions
 import com.apptime.code.focus.FocusModeStats
 import com.apptime.code.leaderboard.LeaderboardStats
 import com.apptime.code.notifications.Notifications
 import com.apptime.code.rewards.Coins
-import com.apptime.code.rewards.RewardCatalog
 import com.apptime.code.rewards.Rewards
-import com.apptime.code.rewards.Transactions
 import com.apptime.code.users.Users
 import users.TOTPVerificationSessions
 import com.zaxxer.hikari.HikariConfig
@@ -159,8 +158,9 @@ object DatabaseFactory {
                 // Rewards module
                 Rewards,
                 Coins,
-                RewardCatalog,
-                Transactions
+                
+                // Features module
+                FeatureFlags
             )
         }
         println("✅ Database tables created/verified!")
