@@ -30,6 +30,34 @@ suspend fun ApplicationCall.respondError(
 }
 
 /**
+ * Extension to get X-App-Language header from request
+ */
+val ApplicationCall.appLanguage: String?
+    get() = request.headers["X-App-Language"]
+
+/**
+ * Extension to get X-App-Version header from request
+ */
+val ApplicationCall.appVersion: String?
+    get() = request.headers["X-App-Version"]
+
+/**
+ * Extension to require X-App-Language header
+ * Returns the language or null if not present
+ */
+fun ApplicationCall.requireAppLanguage(): String? {
+    return appLanguage
+}
+
+/**
+ * Extension to require X-App-Version header
+ * Returns the version or null if not present
+ */
+fun ApplicationCall.requireAppVersion(): String? {
+    return appVersion
+}
+
+/**
  * Execute database transaction with error handling
  */
 inline fun <T> dbTransaction(crossinline block: () -> T): T {
