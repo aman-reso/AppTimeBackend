@@ -133,25 +133,50 @@ class ChallengeRepository {
     fun getUserChallenges(userId: String): List<UserChallenge> {
         return dbTransaction {
             val now = Clock.System.now()
-            (ChallengeParticipants innerJoin Challenges)
+            val challenges = (ChallengeParticipants innerJoin Challenges)
                 .select { ChallengeParticipants.userId eq userId }
                 .orderBy(Challenges.endTime to SortOrder.DESC)
                 .map { row ->
-                    val endTime = row[Challenges.endTime]
-                    UserChallenge(
-                        id = row[Challenges.id],
-                        title = row[Challenges.title],
-                        description = row[Challenges.description],
-                        reward = row[Challenges.reward],
-                        startTime = row[Challenges.startTime].toString(),
-                        endTime = endTime.toString(),
-                        thumbnail = row[Challenges.thumbnail],
-                        challengeType = row[Challenges.challengeType],
-                        isActive = row[Challenges.isActive],
-                        joinedAt = row[ChallengeParticipants.joinedAt].toString(),
-                        isPast = endTime < now
-                    )
+                    row[Challenges.id] to row
                 }
+            
+            // Get challenge IDs to fetch last sync times
+            val challengeIds = challenges.map { it.first }
+            
+            // Get last sync times for all challenges in one query
+            val lastSyncTimes = if (challengeIds.isNotEmpty()) {
+                ChallengeParticipantStats.select {
+                    (ChallengeParticipantStats.challengeId inList challengeIds) and
+                    (ChallengeParticipantStats.userId eq userId)
+                }
+                .groupBy { it[ChallengeParticipantStats.challengeId] }
+                .mapValues { (_, rows) ->
+                    rows.maxByOrNull { it[ChallengeParticipantStats.endSyncTime] }
+                        ?.get(ChallengeParticipantStats.endSyncTime)
+                        ?.toString()
+                }
+            } else {
+                emptyMap()
+            }
+            
+            challenges.map { (challengeId, row) ->
+                val endTime = row[Challenges.endTime]
+                UserChallenge(
+                    id = challengeId,
+                    title = row[Challenges.title],
+                    description = row[Challenges.description],
+                    reward = row[Challenges.reward],
+                    startTime = row[Challenges.startTime].toString(),
+                    endTime = endTime.toString(),
+                    thumbnail = row[Challenges.thumbnail],
+                    challengeType = row[Challenges.challengeType],
+                    isActive = row[Challenges.isActive],
+                    joinedAt = row[ChallengeParticipants.joinedAt].toString(),
+                    isPast = endTime < now,
+                    packageNames = row[Challenges.packageNames],
+                    lastSyncTime = lastSyncTimes[challengeId]
+                )
+            }
         }
     }
     

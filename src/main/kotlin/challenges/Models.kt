@@ -105,7 +105,9 @@ data class UserChallenge(
     val challengeType: String,
     val isActive: Boolean,
     val joinedAt: String,
-    val isPast: Boolean // true if challenge has ended
+    val isPast: Boolean, // true if challenge has ended
+    val packageNames: String? = null, // Comma-separated package names from challenge
+    val lastSyncTime: String? = null // ISO 8601 format - most recent endSyncTime from stats, null if no stats submitted
 )
 
 /**
