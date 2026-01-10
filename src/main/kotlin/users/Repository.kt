@@ -344,16 +344,17 @@ class UserRepository {
     /**
      * Create a TOTP verification session
      * Invalidates any existing session for the same requestingUserId -> targetUserId pair
-     * Session duration: 1 hour (3600 seconds)
+     * @param durationSeconds Duration in seconds for the session (default: 3600 = 1 hour)
      */
     fun createTOTPVerificationSession(
         requestingUserId: String,
         targetUserId: String,
-        targetUsername: String?
+        targetUsername: String?,
+        durationSeconds: Int = 3600 // Default: 1 hour
     ): Long {
         return dbTransaction {
             val now = kotlinx.datetime.Clock.System.now()
-            val expiresAt = Instant.fromEpochMilliseconds(now.toEpochMilliseconds() + (3600 * 1000)) // 1 hour
+            val expiresAt = Instant.fromEpochMilliseconds(now.toEpochMilliseconds() + (durationSeconds * 1000L))
             
             // Invalidate any existing active sessions for this pair
             TOTPVerificationSessions.update(

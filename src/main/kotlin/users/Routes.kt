@@ -94,7 +94,8 @@ fun Application.configureUserRoutes() {
                         val response = service.verifyTOTPCodeByUsername(
                             username = username,
                             code = request.code,
-                            requestingUserId = requestingUserId
+                            requestingUserId = requestingUserId,
+                            durationSeconds = request.durationSeconds
                         )
                     
                     if (response.valid) {
@@ -108,6 +109,34 @@ fun Application.configureUserRoutes() {
                     call.respondError(HttpStatusCode.InternalServerError, "Failed to verify TOTP code: ${e.message}")
                     }
                 }
+            }
+            
+            /**
+             * GET /api/users/{username}/totp/status
+             * Check if TOTP is verified and access is still valid
+             * Requires authentication
+             * Returns access status with remaining time
+             */
+            authenticate("auth-bearer") {
+            get("/{username}/totp/status") {
+                try {
+                    val requestingUserId = call.requireUserId() // User A (authenticated)
+                    val username = call.parameters["username"] // User B's username
+                        ?: throw IllegalArgumentException("Username is required")
+                    
+                    val response = service.checkTOTPAccessStatus(username, requestingUserId)
+                    
+                    if (response.hasAccess) {
+                        call.respondApi(response, "Access status retrieved successfully")
+                    } else {
+                        call.respondApi(response, response.message, HttpStatusCode.Forbidden)
+                    }
+                } catch (e: IllegalArgumentException) {
+                    call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
+                } catch (e: Exception) {
+                    call.respondError(HttpStatusCode.InternalServerError, "Failed to check access status: ${e.message}")
+                }
+            }
             }
             
             /**
