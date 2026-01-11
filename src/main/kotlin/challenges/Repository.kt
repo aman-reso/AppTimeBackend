@@ -5,11 +5,29 @@ import com.apptime.code.users.Users
 import org.jetbrains.exposed.sql.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
 import usage.AppUsageEvents
 import java.time.LocalDate
 import java.time.ZoneId
 
 class ChallengeRepository {
+    
+    private val json = Json { ignoreUnknownKeys = true }
+    
+    /**
+     * Parse appdetail JSON string to List<AppDetail>
+     */
+    private fun parseAppDetail(appdetailJson: String?): List<AppDetail>? {
+        if (appdetailJson.isNullOrBlank()) {
+            return null
+        }
+        return try {
+            json.decodeFromString<List<AppDetail>>(appdetailJson)
+        } catch (e: Exception) {
+            null
+        }
+    }
     
     /**
      * Get all active challenges (where isActive = true and endTime > now)
@@ -67,6 +85,7 @@ class ChallengeRepository {
                     packageNames = row[Challenges.packageNames],
                     scheme = row[Challenges.colorScheme],
                     variant = row[Challenges.variant],
+                    appdetail = parseAppDetail(row[Challenges.appdetail]),
                     participantCount = participantCounts[challengeId] ?: 0,
                     hasJoined = joinedChallengeIds.contains(challengeId)
                 )
@@ -223,6 +242,7 @@ class ChallengeRepository {
                 packageNames = challenge[Challenges.packageNames],
                 scheme = challenge[Challenges.colorScheme],
                 variant = challenge[Challenges.variant],
+                appdetail = parseAppDetail(challenge[Challenges.appdetail]),
                 isActive = challenge[Challenges.isActive],
                 participantCount = participantCount,
                 hasJoined = hasJoined,

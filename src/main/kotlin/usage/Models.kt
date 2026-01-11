@@ -85,11 +85,10 @@ data class AppUsageEventRequest(
     val packageName: String,
     val appName: String? = null,
     val isSystemApp: Boolean = false,
-    val eventType: String, // MOVE_TO_FOREGROUND, MOVE_TO_BACKGROUND, APP_LAUNCHED, APP_CLOSED
-    val eventTimestamp: String, // ISO 8601 format
-    val duration: Long? = null, // Optional duration in milliseconds
-    val startTime: Long? = null, // Optional start time in milliseconds
-    val endTime: Long? = null // Optional end time in milliseconds
+    val event: String, // MOVE_TO_FOREGROUND, MOVE_TO_BACKGROUND, APP_LAUNCHED, APP_CLOSED
+    val duration: Long, // Duration in milliseconds
+    val startTime: Long, // Start time in milliseconds
+    val endTime: Long // End time in milliseconds
 )
 
 /**

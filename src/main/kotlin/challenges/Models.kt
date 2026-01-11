@@ -11,6 +11,15 @@ enum class ChallengeType {
 }
 
 /**
+ * App detail model - contains app name and URL
+ */
+@Serializable
+data class AppDetail(
+    val appname: String,
+    val url: String
+)
+
+/**
  * Challenge display type enum - predefined types for challenges
  */
 @Serializable
@@ -59,6 +68,7 @@ data class ActiveChallenge(
     val packageNames: String? = null, // Comma-separated package names
     val scheme: String? = null, // Color scheme for the challenge (e.g., "blue", "purple", "green")
     val variant: String? = null, // Challenge varient (e.g., "varient1", "varient2", "varient3")
+    val appdetail: List<AppDetail>? = null, // List of app details with appname and url
     val participantCount: Int = 0, // Number of participants who joined this challenge
     val hasJoined: Boolean = false
 )
@@ -139,6 +149,7 @@ data class ChallengeDetail(
     val packageNames: String? = null, // Comma-separated package names
     val scheme: String? = null, // Color scheme for the challenge (e.g., "blue", "purple", "green")
     val variant: String? = null, // Challenge varient (e.g., "varient1", "varient2", "varient3")
+    val appdetail: List<AppDetail>? = null, // List of app details with appname and url
     val isActive: Boolean,
     val participantCount: Int,
     val hasJoined: Boolean = false, // Whether the current user has joined this challenge

@@ -1,5 +1,6 @@
 package com.apptime.code.admin
 
+import com.apptime.code.challenges.AppDetail
 import kotlinx.serialization.Serializable
 
 // Challenge Management Models
@@ -20,6 +21,7 @@ data class CreateChallengeRequest(
     val sponsor: String? = null,
     val colorScheme: String? = null, // Color scheme for the challenge (e.g., "blue", "purple", "green")
     val variant: String? = null, // Challenge varient (e.g., "varient1", "varient2", "varient3")
+    val appdetail: List<AppDetail>? = null, // List of app details with appname and url
     val isActive: Boolean = true
 )
 
@@ -40,6 +42,7 @@ data class UpdateChallengeRequest(
     val sponsor: String? = null,
     val colorScheme: String? = null, // Color scheme for the challenge (e.g., "blue", "purple", "green")
     val variant: String? = null, // Challenge varient (e.g., "varient1", "varient2", "varient3")
+    val appdetail: List<AppDetail>? = null, // List of app details with appname and url
     val isActive: Boolean? = null
 )
 
@@ -61,6 +64,7 @@ data class AdminChallengeResponse(
     val sponsor: String? = null,
     val colorScheme: String? = null, // Color scheme for the challenge (e.g., "blue", "purple", "green")
     val variant: String? = null, // Challenge varient (e.g., "varient1", "varient2", "varient3")
+    val appdetail: List<AppDetail>? = null, // List of app details with appname and url
     val isActive: Boolean,
     val participantCount: Long,
     val createdAt: String

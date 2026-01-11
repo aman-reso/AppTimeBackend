@@ -49,7 +49,7 @@ fun Application.module() {
     configureAdminRoutes()
     
     // Configure scheduled jobs (cronjobs)
-    configureScheduledJobs()
+    //configureScheduledJobs()
 
     routing {
         // Serve admin dashboard

@@ -1,5 +1,6 @@
 package com.apptime.code.admin
 
+import com.apptime.code.challenges.AppDetail
 import com.apptime.code.challenges.ChallengeParticipants
 import com.apptime.code.challenges.Challenges
 import com.apptime.code.common.dbTransaction
@@ -8,10 +9,43 @@ import com.apptime.code.consents.UserConsents
 import com.apptime.code.rewards.Rewards
 import com.apptime.code.users.Users
 import kotlinx.datetime.Instant
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
 class AdminRepository {
+    
+    private val json = Json { ignoreUnknownKeys = true }
+    
+    /**
+     * Parse appdetail JSON string to List<AppDetail>
+     */
+    private fun parseAppDetail(appdetailJson: String?): List<AppDetail>? {
+        if (appdetailJson.isNullOrBlank()) {
+            return null
+        }
+        return try {
+            json.decodeFromString<List<AppDetail>>(appdetailJson)
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    /**
+     * Serialize List<AppDetail> to JSON string
+     */
+    private fun serializeAppDetail(appdetail: List<AppDetail>?): String? {
+        if (appdetail == null || appdetail.isEmpty()) {
+            return null
+        }
+        return try {
+            json.encodeToString(appdetail)
+        } catch (e: Exception) {
+            null
+        }
+    }
     
     // Challenge CRUD
     fun getAllChallenges(): List<AdminChallengeResponse> {
@@ -41,6 +75,7 @@ class AdminRepository {
                         sponsor = row[Challenges.sponsor],
                         colorScheme = row[Challenges.colorScheme],
                         variant = row[Challenges.variant],
+                        appdetail = parseAppDetail(row[Challenges.appdetail]),
                         isActive = row[Challenges.isActive],
                         participantCount = participantCount,
                         createdAt = row[Challenges.createdAt].toString()
@@ -101,6 +136,7 @@ class AdminRepository {
                 it[sponsor] = request.sponsor
                 it[colorScheme] = request.colorScheme
                 it[variant] = request.variant
+                it[appdetail] = serializeAppDetail(request.appdetail)
                 it[isActive] = request.isActive
             } get Challenges.id
         }
@@ -124,6 +160,7 @@ class AdminRepository {
                 request.sponsor?.let { value -> it[Challenges.sponsor] = value }
                 request.colorScheme?.let { value -> it[Challenges.colorScheme] = value }
                 request.variant?.let { value -> it[Challenges.variant] = value }
+                request.appdetail?.let { value -> it[Challenges.appdetail] = serializeAppDetail(value) }
                 request.isActive?.let { value -> it[Challenges.isActive] = value }
             }
             updateCount > 0

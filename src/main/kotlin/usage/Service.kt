@@ -24,7 +24,7 @@ class AppUsageEventService(
         userRepository.updateLastSyncTime(userId, syncTime)
         
         // Submit the event
-        return submitEventInternal(userId, request.event, request.event.duration)
+        return submitEventInternal(userId, request.event)
     }
     
     /**
@@ -32,14 +32,13 @@ class AppUsageEventService(
      */
     private suspend fun submitEventInternal(
         userId: String,
-        request: AppUsageEventRequest,
-        duration: Long? = null
+        request: AppUsageEventRequest
     ): AppUsageEvent {
         if (request.packageName.isBlank()) {
             throw IllegalArgumentException("Package name is required")
         }
         
-        if (request.eventType.isBlank()) {
+        if (request.event.isBlank()) {
             throw IllegalArgumentException("Event type is required")
         }
         
@@ -51,27 +50,23 @@ class AppUsageEventService(
             "APP_CLOSED"
         )
         
-        if (request.eventType !in validEventTypes) {
+        if (request.event !in validEventTypes) {
             throw IllegalArgumentException(
                 "Invalid event type. Must be one of: ${validEventTypes.joinToString(", ")}"
             )
         }
         
-        // Parse timestamp
-        val eventTimestamp = try {
-            Instant.parse(request.eventTimestamp)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid event timestamp format. Use ISO 8601 format.")
-        }
+        // Derive eventTimestamp from startTime (convert milliseconds to Instant)
+        val eventTimestamp = Instant.fromEpochMilliseconds(request.startTime)
         
         return repository.submitEvent(
             userId = userId,
             packageName = request.packageName,
             appName = request.appName,
             isSystemApp = request.isSystemApp,
-            eventType = request.eventType,
+            eventType = request.event,
             eventTimestamp = eventTimestamp,
-            duration = duration ?: request.duration,
+            duration = request.duration,
             startTime = request.startTime,
             endTime = request.endTime
         )
@@ -104,7 +99,7 @@ class AppUsageEventService(
                 throw IllegalArgumentException("Package name is required for all events")
             }
             
-            if (event.eventType.isBlank()) {
+            if (event.event.isBlank()) {
                 throw IllegalArgumentException("Event type is required for all events")
             }
             
@@ -116,17 +111,23 @@ class AppUsageEventService(
                 "APP_CLOSED"
             )
             
-            if (event.eventType !in validEventTypes) {
+            if (event.event !in validEventTypes) {
                 throw IllegalArgumentException(
-                    "Invalid event type: ${event.eventType}. Must be one of: ${validEventTypes.joinToString(", ")}"
+                    "Invalid event type: ${event.event}. Must be one of: ${validEventTypes.joinToString(", ")}"
                 )
             }
             
-            // Validate timestamp
-            try {
-                Instant.parse(event.eventTimestamp)
-            } catch (e: Exception) {
-                throw IllegalArgumentException("Invalid event timestamp format for event: ${event.packageName}. Use ISO 8601 format.")
+            // Validate startTime and endTime
+            if (event.startTime <= 0) {
+                throw IllegalArgumentException("Invalid startTime for event: ${event.packageName}. Start time must be a positive number.")
+            }
+            
+            if (event.endTime <= 0) {
+                throw IllegalArgumentException("Invalid endTime for event: ${event.packageName}. End time must be a positive number.")
+            }
+            
+            if (event.endTime < event.startTime) {
+                throw IllegalArgumentException("Invalid time range for event: ${event.packageName}. End time must be greater than or equal to start time.")
             }
         }
         

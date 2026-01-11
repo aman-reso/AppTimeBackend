@@ -68,14 +68,15 @@ class AppUsageEventRepository {
     ): List<AppUsageEvent> {
         return dbTransaction {
             events.map { event ->
-                val eventTimestamp = Instant.parse(event.eventTimestamp)
+                // Derive eventTimestamp from startTime (convert milliseconds to Instant)
+                val eventTimestamp = Instant.fromEpochMilliseconds(event.startTime)
                 
                 AppUsageEvents.insert {
                     it[AppUsageEvents.userId] = userId
                     it[AppUsageEvents.packageName] = event.packageName
                     it[AppUsageEvents.appName] = event.appName
                     it[AppUsageEvents.isSystemApp] = event.isSystemApp
-                    it[AppUsageEvents.eventType] = event.eventType
+                    it[AppUsageEvents.eventType] = event.event
                     it[AppUsageEvents.eventTimestamp] = eventTimestamp
                     it[AppUsageEvents.duration] = event.duration
                     it[AppUsageEvents.startTime] = event.startTime
@@ -100,6 +101,8 @@ class AppUsageEventRepository {
                     eventType = record[AppUsageEvents.eventType],
                     eventTimestamp = record[AppUsageEvents.eventTimestamp].toString(),
                     duration = record[AppUsageEvents.duration],
+                    startTime = record[AppUsageEvents.startTime],
+                    endTime = record[AppUsageEvents.endTime],
                     createdAt = record[AppUsageEvents.createdAt].toString()
                 )
             }

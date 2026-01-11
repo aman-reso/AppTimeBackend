@@ -23,6 +23,7 @@ object Challenges : Table("challenges") {
     val sponsor = varchar("sponsor", 255).nullable() // Challenge sponsor name
     val colorScheme = varchar("color_scheme", 100).nullable() // Color scheme for the challenge (e.g., "blue", "purple", "green")
     val variant = varchar("variant", 50).nullable() // Challenge varient (e.g., "varient1", "varient2", "varient3")
+    val appdetail = text("appdetail").nullable() // JSON string containing list of app details with appname and url
     val isActive = bool("is_active").default(true)
     val createdAt = timestamp("created_at").clientDefault { kotlinx.datetime.Clock.System.now() }
     
