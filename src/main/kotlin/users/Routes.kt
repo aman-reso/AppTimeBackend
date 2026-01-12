@@ -242,6 +242,34 @@ fun Application.configureUserRoutes() {
                             return@put
                         }
 
+                        // Validate username if provided
+                        if (!request.username.isNullOrBlank()) {
+                            // Validate username length
+                            if (request.username!!.length < 3) {
+                                call.respondError(HttpStatusCode.BadRequest, "Username must be at least 3 characters long")
+                                return@put
+                            }
+
+                            if (request.username!!.length > 30) {
+                                call.respondError(HttpStatusCode.BadRequest, "Username must not exceed 30 characters")
+                                return@put
+                            }
+
+                            // Validate username format: only alphanumeric characters, underscores, and hyphens
+                            val usernamePattern = Regex("^[a-zA-Z0-9_-]+$")
+                            if (!usernamePattern.matches(request.username!!)) {
+                                call.respondError(HttpStatusCode.BadRequest, "Username can only contain letters, numbers, underscores, and hyphens")
+                                return@put
+                            }
+
+                            // Validate that username contains at least one letter
+                            val hasLetter = Regex("[a-zA-Z]").containsMatchIn(request.username!!)
+                            if (!hasLetter) {
+                                call.respondError(HttpStatusCode.BadRequest, "Username must contain at least one letter")
+                                return@put
+                            }
+                        }
+
                         val updatedProfile = service.updateUserProfile(userId, request.username, request.firebaseToken)
 
                         if (updatedProfile != null) {
@@ -268,6 +296,31 @@ fun Application.configureUserRoutes() {
 
                         if (request.username.isBlank()) {
                             call.respondError(HttpStatusCode.BadRequest, "Username is required")
+                            return@post
+                        }
+
+                        // Validate username length
+                        if (request.username.length < 3) {
+                            call.respondError(HttpStatusCode.BadRequest, "Username must be at least 3 characters long")
+                            return@post
+                        }
+
+                        if (request.username.length > 30) {
+                            call.respondError(HttpStatusCode.BadRequest, "Username must not exceed 30 characters")
+                            return@post
+                        }
+
+                        // Validate username format: only alphanumeric characters, underscores, and hyphens
+                        val usernamePattern = Regex("^[a-zA-Z0-9_-]+$")
+                        if (!usernamePattern.matches(request.username)) {
+                            call.respondError(HttpStatusCode.BadRequest, "Username can only contain letters, numbers, underscores, and hyphens")
+                            return@post
+                        }
+
+                        // Validate that username contains at least one letter
+                        val hasLetter = Regex("[a-zA-Z]").containsMatchIn(request.username)
+                        if (!hasLetter) {
+                            call.respondError(HttpStatusCode.BadRequest, "Username must contain at least one letter")
                             return@post
                         }
 
