@@ -615,5 +615,77 @@ class LeaderboardRepository {
             )
         }
     }
+    
+    /**
+     * Get daily screen time for a list of username-date pairs from leaderboard stats
+     * Returns daily screen time for each username for their specified date
+     * @param usernameDatePairs List of username-date pairs to query
+     * @return List of UserScreenTime with daily screentime data
+     */
+    fun getScreenTimeByUsernames(usernameDatePairs: List<UsernameDatePair>): List<UserScreenTime> {
+        if (usernameDatePairs.isEmpty()) {
+            return emptyList()
+        }
+        
+        return dbTransaction {
+            // Validate all dates first
+            val validatedPairs = usernameDatePairs.map { pair ->
+                try {
+                    LocalDate.parse(pair.date, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                    pair
+                } catch (e: Exception) {
+                    throw IllegalArgumentException("Invalid date format for username '${pair.username}'. Expected YYYY-MM-DD")
+                }
+            }
+            
+            // Get unique usernames
+            val uniqueUsernames = validatedPairs.map { it.username }.distinct()
+            
+            // Get user IDs and usernames map
+            val usernameToUserIdMap = Users.select { Users.username inList uniqueUsernames }
+                .associate { it[Users.username] to it[Users.userId] }
+            
+            val userIds = usernameToUserIdMap.values.toList()
+            
+            if (userIds.isEmpty()) {
+                return@dbTransaction validatedPairs.map { pair ->
+                    UserScreenTime(
+                        username = pair.username,
+                        date = pair.date,
+                        screenTime = null
+                    )
+                }
+            }
+            
+            // Get all unique dates
+            val uniqueDates = validatedPairs.map { it.date }.distinct()
+            
+            // Get daily leaderboard stats for these users and dates
+            val stats = LeaderboardStats.select {
+                (LeaderboardStats.userId inList userIds) and
+                (LeaderboardStats.period eq "daily") and
+                (LeaderboardStats.periodDate inList uniqueDates)
+            }
+            
+            // Group stats by userId and date
+            val statsByUserAndDate = stats.groupBy { 
+                Pair(it[LeaderboardStats.userId], it[LeaderboardStats.periodDate])
+            }.mapValues { it.value.first()[LeaderboardStats.totalScreenTime] }
+            
+            // Build response for each username-date pair
+            validatedPairs.map { pair ->
+                val userId = usernameToUserIdMap[pair.username]
+                val dailyScreentime = userId?.let { 
+                    statsByUserAndDate[Pair(it, pair.date)]
+                }
+                
+                UserScreenTime(
+                    username = pair.username,
+                    date = pair.date,
+                    screenTime = dailyScreentime
+                )
+            }
+        }
+    }
 }
 

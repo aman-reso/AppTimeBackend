@@ -49,3 +49,26 @@ data class UpdateLeaderboardStatsResponse(
     val action: String // "created" or "updated"
 )
 
+@Serializable
+data class UsernameDatePair(
+    val username: String,
+    val date: String // YYYY-MM-DD format
+)
+
+@Serializable
+data class GetScreenTimeByUsernamesRequest(
+    val users: List<UsernameDatePair>
+)
+
+@Serializable
+data class UserScreenTime(
+    val username: String,
+    val date: String, // YYYY-MM-DD format
+    val screenTime: Long? = null // milliseconds
+)
+
+@Serializable
+data class GetScreenTimeByUsernamesResponse(
+    val users: List<UserScreenTime>
+)
+

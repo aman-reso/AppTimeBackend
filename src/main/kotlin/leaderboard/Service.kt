@@ -147,5 +147,39 @@ class LeaderboardService(
             action = action
         )
     }
+    
+    /**
+     * Get daily screen time for a list of username-date pairs
+     * Returns daily screen time for each username for their specified date
+     * @param usernameDatePairs List of username-date pairs to query
+     * @return GetScreenTimeByUsernamesResponse with daily screentime data
+     */
+    suspend fun getScreenTimeByUsernames(usernameDatePairs: List<UsernameDatePair>): GetScreenTimeByUsernamesResponse {
+        if (usernameDatePairs.isEmpty()) {
+            throw IllegalArgumentException("Username-date pairs list cannot be empty")
+        }
+        
+        // Validate username-date pairs (remove blanks)
+        val validPairs = usernameDatePairs.filter { 
+            it.username.isNotBlank() && it.date.isNotBlank()
+        }
+        
+        if (validPairs.isEmpty()) {
+            throw IllegalArgumentException("No valid username-date pairs provided")
+        }
+        
+        // Validate all date formats
+        validPairs.forEach { pair ->
+            try {
+                LocalDate.parse(pair.date, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            } catch (e: Exception) {
+                throw IllegalArgumentException("Invalid date format for username '${pair.username}'. Expected YYYY-MM-DD")
+            }
+        }
+        
+        val users = repository.getScreenTimeByUsernames(validPairs)
+        
+        return GetScreenTimeByUsernamesResponse(users = users)
+    }
 }
 

@@ -37,10 +37,13 @@ fun Application.configureLeaderboardRoutes() {
                 } catch (e: IllegalArgumentException) {
                     call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
                 } catch (e: Exception) {
-                    call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve daily leaderboard: ${e.message}")
+                    call.respondError(
+                        HttpStatusCode.InternalServerError,
+                        "Failed to retrieve daily leaderboard: ${e.message}"
+                    )
                 }
             }
-            
+
             /**
              * GET /api/leaderboard/weekly
              * Get weekly leaderboard (public, no auth required)
@@ -59,10 +62,13 @@ fun Application.configureLeaderboardRoutes() {
                 } catch (e: IllegalArgumentException) {
                     call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
                 } catch (e: Exception) {
-                    call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve weekly leaderboard: ${e.message}")
+                    call.respondError(
+                        HttpStatusCode.InternalServerError,
+                        "Failed to retrieve weekly leaderboard: ${e.message}"
+                    )
                 }
             }
-            
+
             /**
              * GET /api/leaderboard/monthly
              * Get monthly leaderboard (public, no auth required)
@@ -82,10 +88,13 @@ fun Application.configureLeaderboardRoutes() {
                 } catch (e: IllegalArgumentException) {
                     call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
                 } catch (e: Exception) {
-                    call.respondError(HttpStatusCode.InternalServerError, "Failed to retrieve monthly leaderboard: ${e.message}")
+                    call.respondError(
+                        HttpStatusCode.InternalServerError,
+                        "Failed to retrieve monthly leaderboard: ${e.message}"
+                    )
                 }
             }
-            
+
             /**
              * POST /api/leaderboard/sync
              * Sync data from app_usage_events to leaderboardstats
@@ -100,10 +109,13 @@ fun Application.configureLeaderboardRoutes() {
                 } catch (e: IllegalArgumentException) {
                     call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
                 } catch (e: Exception) {
-                    call.respondError(HttpStatusCode.InternalServerError, "Failed to sync leaderboard stats: ${e.message}")
+                    call.respondError(
+                        HttpStatusCode.InternalServerError,
+                        "Failed to sync leaderboard stats: ${e.message}"
+                    )
                 }
             }
-            
+
             /**
              * POST /api/leaderboard/stats/update
              * Directly update leaderboard stats for authenticated user (requires authentication)
@@ -119,7 +131,7 @@ fun Application.configureLeaderboardRoutes() {
                     try {
                         val userId = call.requireUserId()
                         val request = call.receive<UpdateLeaderboardStatsRequest>()
-                        
+
                         val response = service.updateLeaderboardStats(
                             userId = userId,
                             period = request.period,
@@ -127,12 +139,45 @@ fun Application.configureLeaderboardRoutes() {
                             totalScreenTime = request.totalScreenTime,
                             replace = request.replace
                         )
-                        
+
                         call.respondApi(response, response.message)
                     } catch (e: IllegalArgumentException) {
                         call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
                     } catch (e: Exception) {
-                        call.respondError(HttpStatusCode.InternalServerError, "Failed to update leaderboard stats: ${e.message}")
+                        call.respondError(
+                            HttpStatusCode.InternalServerError,
+                            "Failed to update leaderboard stats: ${e.message}"
+                        )
+                    }
+                }
+            }
+        }
+        route("/api/summary") {
+            /**
+             * POST /api/summary/screentime
+             * Get daily screen time for a list of username-date pairs from leaderboard stats (requires authentication)
+             * Returns daily screen time for each username for their specified date
+             * Request body:
+             *   - users: List of username-date pairs, each containing:
+             *     - username: String (required)
+             *     - date: String in YYYY-MM-DD format (required)
+             * Response includes username, date, and daily screentime in milliseconds (null if no data)
+             */
+            authenticate("auth-bearer") {
+                post("/screentime") {
+                    try {
+                        call.requireUserId() // Ensure user is authenticated
+                        val request = call.receive<GetScreenTimeByUsernamesRequest>()
+
+                        val response = service.getScreenTimeByUsernames(request.users)
+                        call.respondApi(response, "Screen time retrieved successfully")
+                    } catch (e: IllegalArgumentException) {
+                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
+                    } catch (e: Exception) {
+                        call.respondError(
+                            HttpStatusCode.InternalServerError,
+                            "Failed to retrieve screen time: ${e.message}"
+                        )
                     }
                 }
             }
