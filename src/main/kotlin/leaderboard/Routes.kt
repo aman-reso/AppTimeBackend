@@ -157,19 +157,21 @@ fun Application.configureLeaderboardRoutes() {
              * POST /api/summary/screentime
              * Get daily screen time for a list of username-date pairs from leaderboard stats (requires authentication)
              * Returns daily screen time for each username for their specified date
+             * Only returns data for usernames that have verified the authenticated user via TOTP
              * Request body:
              *   - users: List of username-date pairs, each containing:
              *     - username: String (required)
              *     - date: String in YYYY-MM-DD format (required)
-             * Response includes username, date, and daily screentime in milliseconds (null if no data)
+             * Response includes username, date, and screentime in milliseconds (null if no data)
+             * Only includes users who have verified the authenticated user via TOTP
              */
             authenticate("auth-bearer") {
                 post("/screentime") {
                     try {
-                        call.requireUserId() // Ensure user is authenticated
+                        val authenticatedUserId = call.requireUserId() // Ensure user is authenticated
                         val request = call.receive<GetScreenTimeByUsernamesRequest>()
 
-                        val response = service.getScreenTimeByUsernames(request.users)
+                        val response = service.getScreenTimeByUsernames(request.users, authenticatedUserId)
                         call.respondApi(response, "Screen time retrieved successfully")
                     } catch (e: IllegalArgumentException) {
                         call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")

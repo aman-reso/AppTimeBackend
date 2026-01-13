@@ -253,6 +253,8 @@ class ChallengeRepository {
     
     /**
      * Submit challenge participant stats
+     * Updates existing row if matching userId, challengeId, packageName, and same day (based on startSyncTime) are found
+     * Otherwise inserts a new row (new entry for each day)
      */
     fun submitChallengeStats(
         userId: String,
@@ -264,14 +266,51 @@ class ChallengeRepository {
         duration: Long
     ) {
         dbTransaction {
-            ChallengeParticipantStats.insert {
-                it[ChallengeParticipantStats.challengeId] = challengeId
-                it[ChallengeParticipantStats.userId] = userId
-                it[ChallengeParticipantStats.appName] = appName
-                it[ChallengeParticipantStats.packageName] = packageName
-                it[ChallengeParticipantStats.startSyncTime] = startSyncTime
-                it[ChallengeParticipantStats.endSyncTime] = endSyncTime
-                it[ChallengeParticipantStats.duration] = duration
+            // Convert startSyncTime to date for day comparison
+            val startDate = java.time.Instant.ofEpochMilli(startSyncTime.toEpochMilliseconds())
+                .atZone(ZoneId.of("UTC"))
+                .toLocalDate()
+            
+            // Calculate start and end of day in UTC for SQL comparison
+            val dayStart = startDate.atStartOfDay(ZoneId.of("UTC")).toInstant()
+            val dayEnd = dayStart.plusSeconds(86400) // 24 hours later
+            val dayStartInstant = Instant.fromEpochMilliseconds(dayStart.toEpochMilli())
+            val dayEndInstant = Instant.fromEpochMilliseconds(dayEnd.toEpochMilli())
+            
+            // Check if a record exists with matching userId, challengeId, packageName, and same day
+            val existingRecord = ChallengeParticipantStats.select {
+                (ChallengeParticipantStats.userId eq userId) and
+                (ChallengeParticipantStats.challengeId eq challengeId) and
+                (ChallengeParticipantStats.packageName eq packageName) and
+                (ChallengeParticipantStats.startSyncTime greaterEq dayStartInstant) and
+                (ChallengeParticipantStats.startSyncTime less dayEndInstant)
+            }.orderBy(ChallengeParticipantStats.startSyncTime to SortOrder.DESC)
+            .firstOrNull()
+
+            if (existingRecord != null) {
+                // Update existing record for the same day
+                val existingStartSyncTime = existingRecord[ChallengeParticipantStats.startSyncTime]
+                ChallengeParticipantStats.update({
+                    (ChallengeParticipantStats.userId eq userId) and
+                    (ChallengeParticipantStats.challengeId eq challengeId) and
+                    (ChallengeParticipantStats.packageName eq packageName) and
+                    (ChallengeParticipantStats.startSyncTime eq existingStartSyncTime)
+                }) {
+                    it[ChallengeParticipantStats.appName] = appName
+                    it[ChallengeParticipantStats.endSyncTime] = endSyncTime
+                    it[ChallengeParticipantStats.duration] = duration
+                }
+            } else {
+                // Insert new record (new entry for each day)
+                ChallengeParticipantStats.insert {
+                    it[ChallengeParticipantStats.challengeId] = challengeId
+                    it[ChallengeParticipantStats.userId] = userId
+                    it[ChallengeParticipantStats.appName] = appName
+                    it[ChallengeParticipantStats.packageName] = packageName
+                    it[ChallengeParticipantStats.startSyncTime] = startSyncTime
+                    it[ChallengeParticipantStats.endSyncTime] = endSyncTime
+                    it[ChallengeParticipantStats.duration] = duration
+                }
             }
         }
     }

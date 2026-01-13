@@ -1,5 +1,6 @@
 package com.apptime.code.leaderboard
 
+import users.UserRepository
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.WeekFields
@@ -9,7 +10,8 @@ import java.util.*
  * Leaderboard service - handles business logic for leaderboard operations
  */
 class LeaderboardService(
-    private val repository: LeaderboardRepository
+    private val repository: LeaderboardRepository,
+    private val userRepository: UserRepository = UserRepository()
 ) {
     
     /**
@@ -151,12 +153,21 @@ class LeaderboardService(
     /**
      * Get daily screen time for a list of username-date pairs
      * Returns daily screen time for each username for their specified date
+     * Only returns data for usernames that have verified the authenticated user via TOTP
      * @param usernameDatePairs List of username-date pairs to query
-     * @return GetScreenTimeByUsernamesResponse with daily screentime data
+     * @param authenticatedUserId The authenticated user's ID (who is requesting the data)
+     * @return GetScreenTimeByUsernamesResponse with daily screentime data (only for verified users)
      */
-    suspend fun getScreenTimeByUsernames(usernameDatePairs: List<UsernameDatePair>): GetScreenTimeByUsernamesResponse {
+    suspend fun getScreenTimeByUsernames(
+        usernameDatePairs: List<UsernameDatePair>,
+        authenticatedUserId: String
+    ): GetScreenTimeByUsernamesResponse {
         if (usernameDatePairs.isEmpty()) {
             throw IllegalArgumentException("Username-date pairs list cannot be empty")
+        }
+        
+        if (authenticatedUserId.isBlank()) {
+            throw IllegalArgumentException("Authenticated user ID is required")
         }
         
         // Validate username-date pairs (remove blanks)
@@ -177,7 +188,34 @@ class LeaderboardService(
             }
         }
         
-        val users = repository.getScreenTimeByUsernames(validPairs)
+        // Get all unique usernames
+        val uniqueUsernames = validPairs.map { it.username }.distinct()
+        
+        // Get user IDs for all usernames
+        val usernameToUserIdMap = uniqueUsernames.associateWith { username ->
+            userRepository.getUserIdByUsername(username)
+        }.filterValues { it != null }.mapValues { it.value!! }
+        
+        // Filter to only include usernames that have verified the authenticated user
+        // Check: has each username (as requestingUserId) verified the authenticated user (as targetUserId)?
+        val verifiedUsernameDatePairs = validPairs.filter { pair ->
+            val usernameUserId = usernameToUserIdMap[pair.username]
+            if (usernameUserId != null) {
+                // Check if this username has verified the authenticated user
+                // requestingUserId = usernameUserId (they did the verification)
+                // targetUserId = authenticatedUserId (they were verified)
+                userRepository.hasValidTOTPVerificationSession(usernameUserId, authenticatedUserId)
+            } else {
+                false // User not found, exclude
+            }
+        }
+        
+        // Get screentime data only for verified users
+        val users = if (verifiedUsernameDatePairs.isNotEmpty()) {
+            repository.getScreenTimeByUsernames(verifiedUsernameDatePairs)
+        } else {
+            emptyList()
+        }
         
         return GetScreenTimeByUsernamesResponse(users = users)
     }
