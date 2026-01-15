@@ -39,6 +39,9 @@ dependencies {
     // Base32 encoding/decoding for TOTP secrets
     implementation("commons-codec:commons-codec:1.15")
     
+    // Firebase Admin SDK for push notifications
+    implementation("com.google.firebase:firebase-admin:9.2.0")
+    
     testImplementation(kotlin("test"))
 }
 

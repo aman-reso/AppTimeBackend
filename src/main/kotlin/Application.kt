@@ -10,6 +10,7 @@ import com.apptime.code.features.configureFeatureFlagsRoutes
 import com.apptime.code.focus.configureFocusRoutes
 import com.apptime.code.leaderboard.configureLeaderboardRoutes
 import com.apptime.code.location.configureLocationRoutes
+import com.apptime.code.notifications.FirebaseNotificationService
 import com.apptime.code.rewards.configureRewardRoutes
 import users.configureUserRoutes
 import usage.configureAppUsageEventRoutes
@@ -24,6 +25,9 @@ import kotlinx.serialization.json.Json
 fun Application.module() {
     // Initialize database
     DatabaseFactory.init()
+    
+    // Initialize Firebase for push notifications
+    FirebaseNotificationService.initialize()
 
     install(ContentNegotiation) {
         json(Json {
