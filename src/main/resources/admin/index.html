@@ -580,10 +580,24 @@
         <div id="rewards" class="tab-content">
             <div class="section">
                 <div class="section-header">
-                    <h2>Rewards Management</h2>
-                    <button class="btn btn-primary" onclick="showRewardModal()">+ Create Reward</button>
+                    <h2>Rewards Management (Read-Only)</h2>
+                    <button class="btn btn-primary" onclick="loadRewards()">🔄 Refresh</button>
                 </div>
+                <p style="color: var(--text-secondary); margin-bottom: 20px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                    <strong>ℹ️ Note:</strong> Rewards are system-generated only. They are automatically created when users complete challenges, log in daily, reach milestones, etc. Admins cannot create, edit, or delete user rewards.
+                </p>
                 <div id="rewards-content" class="loading">Loading rewards...</div>
+            </div>
+            
+            <div class="section" style="margin-top: 30px;">
+                <div class="section-header">
+                    <h2>Reward Catalog Management</h2>
+                    <button class="btn btn-primary" onclick="showRewardCatalogModal()">+ Create Catalog Item</button>
+                </div>
+                <p style="color: var(--text-secondary); margin-bottom: 20px; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                    <strong>ℹ️ Note:</strong> Reward catalog items are products that users can redeem with their coins. Admins can create and manage these items.
+                </p>
+                <div id="reward-catalog-content" class="loading">Loading reward catalog...</div>
             </div>
         </div>
 
@@ -866,77 +880,58 @@
         </div>
     </div>
 
-    <!-- Reward Modal -->
-    <div id="rewardModal" class="modal">
+    <!-- Reward Catalog Modal -->
+    <div id="rewardCatalogModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="rewardModalTitle">Create Reward</h3>
-                <button class="close" onclick="closeRewardModal()">&times;</button>
+                <h3 id="rewardCatalogModalTitle">Create Reward Catalog Item</h3>
+                <button class="close" onclick="closeRewardCatalogModal()">&times;</button>
             </div>
-            <form id="rewardForm" onsubmit="saveReward(event)">
-                <input type="hidden" id="rewardId">
-                <div class="form-group">
-                    <label>User ID *</label>
-                    <input type="text" id="rewardUserId" required>
-                </div>
-                <div class="form-group">
-                    <label>Type *</label>
-                    <select id="rewardType" required>
-                        <option value="POINTS">Points</option>
-                        <option value="BADGE">Badge</option>
-                        <option value="COUPON">Coupon</option>
-                        <option value="TROPHY">Trophy</option>
-                        <option value="CUSTOM">Custom</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Source *</label>
-                    <select id="rewardSource" required>
-                        <option value="CHALLENGE_WIN">Challenge Win</option>
-                        <option value="CHALLENGE_PARTICIPATION">Challenge Participation</option>
-                        <option value="DAILY_LOGIN">Daily Login</option>
-                        <option value="STREAK_MILESTONE">Streak Milestone</option>
-                        <option value="REFERRAL">Referral</option>
-                        <option value="ACHIEVEMENT">Achievement</option>
-                        <option value="ADMIN_GRANT">Admin Grant</option>
-                        <option value="OTHER">Other</option>
-                    </select>
-                </div>
+            <form id="rewardCatalogForm" onsubmit="saveRewardCatalog(event)">
+                <input type="hidden" id="rewardCatalogId">
                 <div class="form-group">
                     <label>Title *</label>
-                    <input type="text" id="rewardTitle" required>
+                    <input type="text" id="rewardCatalogTitle" required>
                 </div>
                 <div class="form-group">
                     <label>Description</label>
-                    <textarea id="rewardDescription"></textarea>
+                    <textarea id="rewardCatalogDescription"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Amount</label>
-                    <input type="number" id="rewardAmount" value="0" min="0">
+                    <label>Category</label>
+                    <input type="text" id="rewardCatalogCategory" placeholder="e.g., Electronics, Vouchers, Merchandise">
                 </div>
                 <div class="form-group">
-                    <label>Metadata (JSON)</label>
-                    <textarea id="rewardMetadata" placeholder='{"key": "value"}'></textarea>
+                    <label>Reward Type *</label>
+                    <select id="rewardCatalogRewardType" required>
+                        <option value="PHYSICAL">Physical (requires shipping)</option>
+                        <option value="DIGITAL">Digital (email/phone delivery)</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label>Challenge ID</label>
-                    <input type="number" id="rewardChallengeId" min="0">
+                    <label>Coin Price *</label>
+                    <input type="number" id="rewardCatalogCoinPrice" required min="1">
                 </div>
                 <div class="form-group">
-                    <label>Challenge Title</label>
-                    <input type="text" id="rewardChallengeTitle">
+                    <label>Image URL</label>
+                    <input type="url" id="rewardCatalogImageUrl" placeholder="https://example.com/image.jpg">
                 </div>
                 <div class="form-group">
-                    <label>Rank</label>
-                    <input type="number" id="rewardRank" min="0">
+                    <label>Stock Quantity</label>
+                    <input type="number" id="rewardCatalogStockQuantity" value="-1" min="-1">
+                    <small style="color: var(--text-secondary); font-size: 0.85em;">-1 for unlimited stock</small>
                 </div>
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" id="rewardIsClaimed"> Is Claimed
+                        <input type="checkbox" id="rewardCatalogIsActive" checked> Active
                     </label>
                 </div>
+                <div class="form-group">
+                    <label>Metadata (JSON)</label>
+                    <textarea id="rewardCatalogMetadata" placeholder='{"key": "value"}'></textarea>
+                </div>
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeRewardModal()">Cancel</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRewardCatalogModal()">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>
             </form>
@@ -952,6 +947,7 @@
         let currentEditingUser = null;
         let currentEditingReward = null;
         let currentEditingFeature = null;
+        let currentEditingRewardCatalog = null;
 
         // Theme Management
         function getTheme() {
@@ -1093,7 +1089,10 @@
             if (tabName === 'challenges') loadChallenges();
             if (tabName === 'users') loadUsers();
             if (tabName === 'consents') loadConsents();
-            if (tabName === 'rewards') loadRewards();
+            if (tabName === 'rewards') {
+                loadRewards();
+                loadRewardCatalog();
+            }
             if (tabName === 'features') loadFeatures();
         }
 
@@ -1692,8 +1691,7 @@
                                 <td><span class="badge ${r.isClaimed ? 'active' : 'inactive'}">${r.isClaimed ? 'Yes' : 'No'}</span></td>
                                 <td>${new Date(r.earnedAt).toLocaleString()}</td>
                                 <td class="actions">
-                                    <button class="btn btn-primary btn-sm" onclick="editReward(${r.id})">Edit</button>
-                                    <button class="btn btn-danger btn-sm" onclick="deleteReward(${r.id})">Delete</button>
+                                    <span style="color: var(--text-secondary); font-size: 0.85em;">Read-only</span>
                                 </td>
                             </tr>
                         `).join('')}
@@ -1703,64 +1701,113 @@
             document.getElementById('rewards-content').innerHTML = html;
         }
 
-        function showRewardModal(reward = null) {
-            currentEditingReward = reward;
-            const modal = document.getElementById('rewardModal');
-            const form = document.getElementById('rewardForm');
-            const title = document.getElementById('rewardModalTitle');
+        // Reward Catalog Management
+        async function loadRewardCatalog() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/catalog`);
+                const result = await response.json();
+                if (result.success && result.data) {
+                    displayRewardCatalog(result.data);
+                } else {
+                    document.getElementById('reward-catalog-content').innerHTML = '<p>No catalog items found.</p>';
+                }
+            } catch (err) {
+                showMessage(`Error loading reward catalog: ${err.message}`);
+                document.getElementById('reward-catalog-content').innerHTML = `<p class="error">Error: ${err.message}</p>`;
+            }
+        }
+
+        function displayRewardCatalog(catalogItems) {
+            if (catalogItems.length === 0) {
+                document.getElementById('reward-catalog-content').innerHTML = '<p>No catalog items found. Create one to get started!</p>';
+                return;
+            }
+            const html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Type</th>
+                            <th>Coin Price</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${catalogItems.map(item => `
+                            <tr>
+                                <td>${item.id}</td>
+                                <td>${item.title}</td>
+                                <td>${item.category || 'N/A'}</td>
+                                <td>${item.rewardType}</td>
+                                <td>${item.coinPrice} coins</td>
+                                <td>${item.stockQuantity === -1 ? 'Unlimited' : item.stockQuantity}</td>
+                                <td><span class="badge ${item.isActive ? 'active' : 'inactive'}">${item.isActive ? 'Active' : 'Inactive'}</span></td>
+                                <td class="actions">
+                                    <button class="btn btn-primary btn-sm" onclick="editRewardCatalog(${item.id})">Edit</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('reward-catalog-content').innerHTML = html;
+        }
+
+        function showRewardCatalogModal(catalogItem = null) {
+            currentEditingRewardCatalog = catalogItem;
+            const modal = document.getElementById('rewardCatalogModal');
+            const form = document.getElementById('rewardCatalogForm');
+            const title = document.getElementById('rewardCatalogModalTitle');
             
-            if (reward) {
-                title.textContent = 'Edit Reward';
-                document.getElementById('rewardId').value = reward.id;
-                document.getElementById('rewardUserId').value = reward.userId;
-                document.getElementById('rewardType').value = reward.type;
-                document.getElementById('rewardSource').value = reward.source;
-                document.getElementById('rewardTitle').value = reward.title;
-                document.getElementById('rewardDescription').value = reward.description || '';
-                document.getElementById('rewardAmount').value = reward.amount || 0;
-                document.getElementById('rewardMetadata').value = reward.metadata || '';
-                document.getElementById('rewardChallengeId').value = reward.challengeId || '';
-                document.getElementById('rewardChallengeTitle').value = reward.challengeTitle || '';
-                document.getElementById('rewardRank').value = reward.rank || '';
-                document.getElementById('rewardIsClaimed').checked = reward.isClaimed || false;
+            if (catalogItem) {
+                title.textContent = 'Edit Reward Catalog Item';
+                document.getElementById('rewardCatalogId').value = catalogItem.id;
+                document.getElementById('rewardCatalogTitle').value = catalogItem.title;
+                document.getElementById('rewardCatalogDescription').value = catalogItem.description || '';
+                document.getElementById('rewardCatalogCategory').value = catalogItem.category || '';
+                document.getElementById('rewardCatalogRewardType').value = catalogItem.rewardType;
+                document.getElementById('rewardCatalogCoinPrice').value = catalogItem.coinPrice;
+                document.getElementById('rewardCatalogImageUrl').value = catalogItem.imageUrl || '';
+                document.getElementById('rewardCatalogStockQuantity').value = catalogItem.stockQuantity;
+                document.getElementById('rewardCatalogIsActive').checked = catalogItem.isActive;
+                document.getElementById('rewardCatalogMetadata').value = catalogItem.metadata || '';
             } else {
-                title.textContent = 'Create Reward';
+                title.textContent = 'Create Reward Catalog Item';
                 form.reset();
-                document.getElementById('rewardId').value = '';
-                document.getElementById('rewardAmount').value = '0';
+                document.getElementById('rewardCatalogId').value = '';
+                document.getElementById('rewardCatalogStockQuantity').value = '-1';
+                document.getElementById('rewardCatalogIsActive').checked = true;
             }
             modal.classList.add('active');
         }
 
-        function closeRewardModal() {
-            document.getElementById('rewardModal').classList.remove('active');
-            currentEditingReward = null;
+        function closeRewardCatalogModal() {
+            document.getElementById('rewardCatalogModal').classList.remove('active');
+            currentEditingRewardCatalog = null;
         }
 
-        async function saveReward(event) {
+        async function saveRewardCatalog(event) {
             event.preventDefault();
-            const id = document.getElementById('rewardId').value;
+            const id = document.getElementById('rewardCatalogId').value;
             
             const data = {
-                userId: document.getElementById('rewardUserId').value,
-                type: document.getElementById('rewardType').value,
-                source: document.getElementById('rewardSource').value,
-                title: document.getElementById('rewardTitle').value,
-                description: document.getElementById('rewardDescription').value || null,
-                amount: parseInt(document.getElementById('rewardAmount').value) || 0,
-                metadata: document.getElementById('rewardMetadata').value || null,
-                challengeId: document.getElementById('rewardChallengeId').value ? parseInt(document.getElementById('rewardChallengeId').value) : null,
-                challengeTitle: document.getElementById('rewardChallengeTitle').value || null,
-                rank: document.getElementById('rewardRank').value ? parseInt(document.getElementById('rewardRank').value) : null
+                title: document.getElementById('rewardCatalogTitle').value,
+                description: document.getElementById('rewardCatalogDescription').value || null,
+                category: document.getElementById('rewardCatalogCategory').value || null,
+                rewardType: document.getElementById('rewardCatalogRewardType').value,
+                coinPrice: parseInt(document.getElementById('rewardCatalogCoinPrice').value),
+                imageUrl: document.getElementById('rewardCatalogImageUrl').value || null,
+                stockQuantity: parseInt(document.getElementById('rewardCatalogStockQuantity').value),
+                isActive: document.getElementById('rewardCatalogIsActive').checked,
+                metadata: document.getElementById('rewardCatalogMetadata').value || null
             };
 
-            // Add isClaimed for updates
-            if (id) {
-                data.isClaimed = document.getElementById('rewardIsClaimed').checked;
-            }
-
             try {
-                const url = id ? `${API_BASE}/api/admin/rewards/${id}` : `${API_BASE}/api/admin/rewards`;
+                const url = id ? `${API_BASE}/api/admin/catalog/${id}` : `${API_BASE}/api/admin/catalog`;
                 const method = id ? 'PUT' : 'POST';
                 
                 const response = await fetch(url, {
@@ -1771,42 +1818,28 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showMessage(result.message || 'Reward saved successfully', 'success');
-                    closeRewardModal();
-                    loadRewards();
+                    showMessage(result.message || 'Reward catalog item saved successfully', 'success');
+                    closeRewardCatalogModal();
+                    loadRewardCatalog();
                 } else {
-                    showMessage(result.message || 'Failed to save reward');
+                    showMessage(result.message || 'Failed to save reward catalog item');
                 }
             } catch (err) {
                 showMessage(`Error: ${err.message}`);
             }
         }
 
-        async function editReward(id) {
+        async function editRewardCatalog(id) {
             try {
-                const response = await fetch(`${API_BASE}/api/admin/rewards/${id}`);
+                const response = await fetch(`${API_BASE}/api/admin/catalog/${id}`);
                 const result = await response.json();
                 if (result.success && result.data) {
-                    showRewardModal(result.data);
-                }
-            } catch (err) {
-                showMessage(`Error loading reward: ${err.message}`);
-            }
-        }
-
-        async function deleteReward(id) {
-            if (!confirm('Are you sure you want to delete this reward?')) return;
-            try {
-                const response = await fetch(`${API_BASE}/api/admin/rewards/${id}`, { method: 'DELETE' });
-                const result = await response.json();
-                if (result.success) {
-                    showMessage('Reward deleted successfully', 'success');
-                    loadRewards();
+                    showRewardCatalogModal(result.data);
                 } else {
-                    showMessage(result.message || 'Failed to delete reward');
+                    showMessage(result.message || 'Failed to load catalog item');
                 }
             } catch (err) {
-                showMessage(`Error: ${err.message}`);
+                showMessage(`Error loading catalog item: ${err.message}`);
             }
         }
 

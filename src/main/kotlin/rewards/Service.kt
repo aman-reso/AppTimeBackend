@@ -398,6 +398,40 @@ class RewardService(
         return repository.getRewardCatalogById(catalogId)!!
     }
     
+    /**
+     * Update a reward catalog item (admin)
+     */
+    suspend fun updateRewardCatalogItem(
+        catalogId: Long,
+        request: CreateRewardCatalogRequest
+    ): RewardCatalogItem {
+        // Validate reward type
+        val rewardType = try {
+            RewardCatalogType.valueOf(request.rewardType.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw IllegalArgumentException("Invalid reward type. Must be PHYSICAL or DIGITAL")
+        }
+        
+        val success = repository.updateRewardCatalogItem(
+            catalogId = catalogId,
+            title = request.title,
+            description = request.description,
+            category = request.category,
+            rewardType = rewardType.name,
+            coinPrice = request.coinPrice,
+            imageUrl = request.imageUrl,
+            stockQuantity = request.stockQuantity,
+            isActive = request.isActive,
+            metadata = request.metadata
+        )
+        
+        if (!success) {
+            throw IllegalArgumentException("Reward catalog item not found")
+        }
+        
+        return repository.getRewardCatalogById(catalogId)!!
+    }
+    
     // ========== TRANSACTION METHODS ==========
     
     /**

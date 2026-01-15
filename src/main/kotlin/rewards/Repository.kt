@@ -445,6 +445,43 @@ class RewardRepository {
     }
     
     /**
+     * Update reward catalog item
+     */
+    fun updateRewardCatalogItem(
+        catalogId: Long,
+        title: String? = null,
+        description: String? = null,
+        category: String? = null,
+        rewardType: String? = null,
+        coinPrice: Long? = null,
+        imageUrl: String? = null,
+        stockQuantity: Int? = null,
+        isActive: Boolean? = null,
+        metadata: String? = null
+    ): Boolean {
+        return dbTransaction {
+            val item = RewardCatalog.select { RewardCatalog.id eq catalogId }.firstOrNull()
+            if (item == null) {
+                false
+            } else {
+                RewardCatalog.update({ RewardCatalog.id eq catalogId }) {
+                    title?.let { value -> it[RewardCatalog.title] = value }
+                    description?.let { value -> it[RewardCatalog.description] = value }
+                    category?.let { value -> it[RewardCatalog.category] = value }
+                    rewardType?.let { value -> it[RewardCatalog.rewardType] = value }
+                    coinPrice?.let { value -> it[RewardCatalog.coinPrice] = value }
+                    imageUrl?.let { value -> it[RewardCatalog.imageUrl] = value }
+                    stockQuantity?.let { value -> it[RewardCatalog.stockQuantity] = value }
+                    isActive?.let { value -> it[RewardCatalog.isActive] = value }
+                    metadata?.let { value -> it[RewardCatalog.metadata] = value }
+                    it[RewardCatalog.updatedAt] = kotlinx.datetime.Clock.System.now()
+                }
+                true
+            }
+        }
+    }
+    
+    /**
      * Update reward catalog item stock
      */
     fun updateRewardCatalogStock(catalogId: Long, quantityChange: Int): Boolean {

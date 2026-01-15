@@ -272,9 +272,9 @@ fun Application.configureAdminRoutes() {
                 }
             }
             
-            // Reward Management
+            // Reward Management (Read-only - rewards are system-generated, not admin-created)
             route("/rewards") {
-                // Get all rewards
+                // Get all rewards (view only)
                 get {
                     try {
                         val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 100
@@ -286,7 +286,7 @@ fun Application.configureAdminRoutes() {
                     }
                 }
                 
-                // Get reward by ID
+                // Get reward by ID (view only)
                 get("/{id}") {
                     try {
                         val id = call.parameters["id"]?.toLongOrNull()
@@ -304,57 +304,8 @@ fun Application.configureAdminRoutes() {
                     }
                 }
                 
-                // Create reward
-                post {
-                    try {
-                        val request = call.receive<CreateRewardRequest>()
-                        val id = adminRepository.createReward(request)
-                        val reward = adminRepository.getRewardById(id)
-                        call.respondApi(reward, "Reward created successfully", HttpStatusCode.Created)
-                    } catch (e: IllegalArgumentException) {
-                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
-                    } catch (e: Exception) {
-                        call.respondError(HttpStatusCode.InternalServerError, "Failed to create reward: ${e.message}")
-                    }
-                }
-                
-                // Update reward
-                put("/{id}") {
-                    try {
-                        val id = call.parameters["id"]?.toLongOrNull()
-                            ?: throw IllegalArgumentException("Invalid reward ID")
-                        val request = call.receive<UpdateRewardRequest>()
-                        val updated = adminRepository.updateReward(id, request)
-                        if (updated) {
-                            val reward = adminRepository.getRewardById(id)
-                            call.respondApi(reward, "Reward updated successfully")
-                        } else {
-                            call.respondError(HttpStatusCode.NotFound, "Reward not found")
-                        }
-                    } catch (e: IllegalArgumentException) {
-                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
-                    } catch (e: Exception) {
-                        call.respondError(HttpStatusCode.InternalServerError, "Failed to update reward: ${e.message}")
-                    }
-                }
-                
-                // Delete reward
-                delete("/{id}") {
-                    try {
-                        val id = call.parameters["id"]?.toLongOrNull()
-                            ?: throw IllegalArgumentException("Invalid reward ID")
-                        val deleted = adminRepository.deleteReward(id)
-                        if (deleted) {
-                            call.respondApi("", "Reward deleted successfully")
-                        } else {
-                            call.respondError(HttpStatusCode.NotFound, "Reward not found")
-                        }
-                    } catch (e: IllegalArgumentException) {
-                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
-                    } catch (e: Exception) {
-                        call.respondError(HttpStatusCode.InternalServerError, "Failed to delete reward: ${e.message}")
-                    }
-                }
+                // Note: Admins cannot create, update, or delete rewards
+                // Rewards are system-generated only (from challenges, daily login, streaks, etc.)
             }
             
             // Consent Template Management
@@ -478,6 +429,21 @@ fun Application.configureAdminRoutes() {
                         call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
                     } catch (e: Exception) {
                         call.respondError(HttpStatusCode.InternalServerError, "Failed to create catalog item: ${e.message}")
+                    }
+                }
+                
+                // Update catalog item
+                put("/{id}") {
+                    try {
+                        val id = call.parameters["id"]?.toLongOrNull()
+                            ?: throw IllegalArgumentException("Invalid catalog ID")
+                        val request = call.receive<com.apptime.code.rewards.CreateRewardCatalogRequest>()
+                        val catalogItem = rewardService.updateRewardCatalogItem(id, request)
+                        call.respondApi(catalogItem, "Catalog item updated successfully")
+                    } catch (e: IllegalArgumentException) {
+                        call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, "Failed to update catalog item: ${e.message}")
                     }
                 }
             }

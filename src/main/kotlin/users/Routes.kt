@@ -3,11 +3,14 @@ package users
 import com.apptime.code.common.requireUserId
 import com.apptime.code.common.respondApi
 import com.apptime.code.common.respondError
+import com.apptime.code.notifications.FirebaseNotificationService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 /**
  * Configure user-related routes
@@ -436,6 +439,13 @@ fun Application.configureUserRoutes() {
                             return@post
                         }
                         
+                        // Get target user info for notification
+                        val requestingUserId = repository.getUserIdByUsername(request.username)
+                            ?: throw IllegalArgumentException("User not found")
+                        
+                        val targetUser = repository.getUserById(userId)
+                        val targetUsername = targetUser?.username ?: "User"
+                        
                         val response = service.grantAccessWithoutTOTP(
                             userId,
                             request.username,
@@ -443,6 +453,37 @@ fun Application.configureUserRoutes() {
                         )
                         
                         if (response.success) {
+                            // Send notification to the user who got access
+                            val requestingUser = repository.getUserById(requestingUserId)
+                            val firebaseToken = requestingUser?.firebaseToken
+                            
+                            if (!firebaseToken.isNullOrBlank()) {
+                                val durationText = when {
+                                    response.remainingSeconds!! < 3600 -> "${response.remainingSeconds / 60} minute(s)"
+                                    response.remainingSeconds < 86400 -> "${response.remainingSeconds / 3600} hour(s)"
+                                    response.remainingSeconds < 31536000 -> "${response.remainingSeconds / 86400} day(s)"
+                                    else -> "${response.remainingSeconds / 31536000} year(s)"
+                                }
+                                
+                                val title = "Access Granted"
+                                val body = "$targetUsername has granted you access. Duration: $durationText"
+                                
+                                GlobalScope.launch {
+                                    FirebaseNotificationService.sendNotification(
+                                        firebaseToken = firebaseToken,
+                                        title = title,
+                                        body = body,
+                                        data = mapOf(
+                                            "type" to "access_granted",
+                                            "targetUserId" to userId,
+                                            "targetUsername" to targetUsername,
+                                            "expiresAt" to (response.expiresAt ?: ""),
+                                            "remainingSeconds" to (response.remainingSeconds?.toString() ?: "")
+                                        )
+                                    )
+                                }
+                            }
+                            
                             call.respondApi(response, "Access granted successfully")
                         } else {
                             call.respondError(HttpStatusCode.BadRequest, response.message)
@@ -472,12 +513,34 @@ fun Application.configureUserRoutes() {
                         val requestingUserId = repository.getUserIdByUsername(request.username)
                             ?: throw IllegalArgumentException("User not found")
 
-                        println("requestingUserId : "+ requestingUserId)
-                        println("userId : "+ userId)
+                        val targetUser = repository.getUserById(userId)
+                        val targetUsername = targetUser?.username ?: "User"
 
-                        val success = service.revokeAccess(requestingUserId, userId )
+                        val success = service.revokeAccess(requestingUserId, userId)
                         
                         if (success) {
+                            // Send notification to the user whose access was revoked
+                            val requestingUser = repository.getUserById(requestingUserId)
+                            val firebaseToken = requestingUser?.firebaseToken
+                            
+                            if (!firebaseToken.isNullOrBlank()) {
+                                val title = "Access Revoked"
+                                val body = "$targetUsername has revoked your access."
+                                
+                                GlobalScope.launch {
+                                    FirebaseNotificationService.sendNotification(
+                                        firebaseToken = firebaseToken,
+                                        title = title,
+                                        body = body,
+                                        data = mapOf(
+                                            "type" to "access_revoked",
+                                            "targetUserId" to userId,
+                                            "targetUsername" to targetUsername
+                                        )
+                                    )
+                                }
+                            }
+                            
                             call.respondApi(
                                 SimpleResponse(success = true, message = "Access revoked successfully"),
                                 "Access revoked successfully"
@@ -510,11 +573,57 @@ fun Application.configureUserRoutes() {
                             call.respondError(HttpStatusCode.BadRequest, "Additional seconds must be greater than 0")
                             return@post
                         }
-                        val requestingUserId = repository.getUserIdByUsername(request.username);
                         
-                        val response = service.extendAccessTime(userId, requestingUserId.toString(), request.additionalSeconds)
+                        val requestingUserId = repository.getUserIdByUsername(request.username)
+                            ?: throw IllegalArgumentException("User not found")
+                        
+                        val targetUser = repository.getUserById(userId)
+                        val targetUsername = targetUser?.username ?: "User"
+                        
+                        val response = service.extendAccessTime(userId, requestingUserId, request.additionalSeconds)
                         
                         if (response.success) {
+                            // Send notification to the user whose access was extended
+                            val requestingUser = repository.getUserById(requestingUserId)
+                            val firebaseToken = requestingUser?.firebaseToken
+                            
+                            if (!firebaseToken.isNullOrBlank()) {
+                                val additionalTimeText = when {
+                                    request.additionalSeconds < 3600 -> "${request.additionalSeconds / 60} minute(s)"
+                                    request.additionalSeconds < 86400 -> "${request.additionalSeconds / 3600} hour(s)"
+                                    request.additionalSeconds < 604800 -> "${request.additionalSeconds / 86400} day(s)"
+                                    else -> "${request.additionalSeconds / 604800} week(s)"
+                                }
+                                
+                                val remainingTimeText = response.remainingSeconds?.let {
+                                    when {
+                                        it < 3600 -> "${it / 60} minute(s)"
+                                        it < 86400 -> "${it / 3600} hour(s)"
+                                        it < 31536000 -> "${it / 86400} day(s)"
+                                        else -> "${it / 31536000} year(s)"
+                                    }
+                                } ?: "Unknown"
+                                
+                                val title = "Access Extended"
+                                val body = "$targetUsername has extended your access time. Additional time: $additionalTimeText. Total remaining: $remainingTimeText"
+                                
+                                GlobalScope.launch {
+                                    FirebaseNotificationService.sendNotification(
+                                        firebaseToken = firebaseToken,
+                                        title = title,
+                                        body = body,
+                                        data = mapOf(
+                                            "type" to "access_extended",
+                                            "targetUserId" to userId,
+                                            "targetUsername" to targetUsername,
+                                            "additionalSeconds" to request.additionalSeconds.toString(),
+                                            "newExpiresAt" to (response.expiresAt ?: ""),
+                                            "remainingSeconds" to (response.remainingSeconds?.toString() ?: "")
+                                        )
+                                    )
+                                }
+                            }
+                            
                             call.respondApi(response, "Access time extended successfully")
                         } else {
                             call.respondError(HttpStatusCode.NotFound, response.message)
