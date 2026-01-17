@@ -9,6 +9,7 @@ import com.apptime.code.consents.configureConsentRoutes
 import com.apptime.code.features.configureFeatureFlagsRoutes
 import com.apptime.code.focus.configureFocusRoutes
 import com.apptime.code.leaderboard.configureLeaderboardRoutes
+import com.apptime.code.appstats.configureAppStatsRoutes
 import com.apptime.code.location.configureLocationRoutes
 import com.apptime.code.notifications.FirebaseNotificationService
 import com.apptime.code.rewards.configureRewardRoutes
@@ -59,6 +60,7 @@ fun Application.module() {
     configureRewardRoutes()
     configureFeatureFlagsRoutes()
     configureAdminRoutes()
+    configureAppStatsRoutes()
     
     // Configure scheduled jobs (cronjobs)
     //configureScheduledJobs()

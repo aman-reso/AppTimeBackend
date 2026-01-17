@@ -198,6 +198,14 @@ object MessageKeys {
     const val FOCUS_MODE_STATS_UNTIL_RETRIEVED = "focus.mode.stats.until.retrieved"
     const val FOCUS_MODE_STATS_FAILED = "focus.mode.stats.failed"
     
+    // App Stats messages
+    const val APP_STATS_ADDED = "app.stats.added"
+    const val APP_STATS_ADD_FAILED = "app.stats.add.failed"
+    const val APP_STATS_UPDATED = "app.stats.updated"
+    const val APP_STATS_UPDATE_FAILED = "app.stats.update.failed"
+    const val APP_STATS_RETRIEVED = "app.stats.retrieved"
+    const val APP_STATS_FAILED = "app.stats.failed"
+    
     // Feature flags messages
     const val FEATURE_FLAGS_RETRIEVED = "feature.flags.retrieved"
     const val FEATURE_FLAGS_FAILED = "feature.flags.failed"

@@ -44,7 +44,7 @@ data class LocationData(
  */
 @Serializable
 data class LocationDataWrapper(
-    val location: LocationData,
+    val location: LocationData? = null, // Can be null if location data not available
     val message: String
 )
 

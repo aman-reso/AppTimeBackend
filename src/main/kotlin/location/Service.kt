@@ -81,22 +81,30 @@ class LocationService(
 
         // Get location data
         val location = repository.getLocationByUserId(targetUserId)
-            ?: throw IllegalArgumentException("Location data not found for this user")
 
-        // Convert to response model
-        return LocationDataWrapper(
-            location = LocationData(
-                id = location.id,
-                userId = location.userId,
-                latitude = location.latitude,
-                longitude = location.longitude,
-                address = location.address,
-                ipAddress = location.ipAddress,
-                timestamp = location.lastSyncTime.toString(), // Use lastSyncTime as timestamp
-                lastSyncTime = null, // Can be null as per example
-                createdAt = location.createdAt.toString()
-            ),
-            message = "Last location retrieved successfully"
-        )
+        // If location data not found, return null location instead of throwing error
+        return if (location != null) {
+            // Convert to response model
+            LocationDataWrapper(
+                location = LocationData(
+                    id = location.id,
+                    userId = location.userId,
+                    latitude = location.latitude,
+                    longitude = location.longitude,
+                    address = location.address,
+                    ipAddress = location.ipAddress,
+                    timestamp = location.lastSyncTime.toString(), // Use lastSyncTime as timestamp
+                    lastSyncTime = null, // Can be null as per example
+                    createdAt = location.createdAt.toString()
+                ),
+                message = "Last location retrieved successfully"
+            )
+        } else {
+            // Return null location data
+            LocationDataWrapper(
+                location = null,
+                message = "Location data not available for this user"
+            )
+        }
     }
 }

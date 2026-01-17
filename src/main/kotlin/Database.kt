@@ -12,6 +12,7 @@ import com.apptime.code.features.FeatureFlags
 import com.apptime.code.focus.FocusSessions
 import com.apptime.code.focus.FocusModeStats
 import com.apptime.code.leaderboard.LeaderboardStats
+import com.apptime.code.appstats.AppStats
 import com.apptime.code.location.UserLocations
 import com.apptime.code.notifications.Notifications
 import com.apptime.code.rewards.Coins
@@ -164,7 +165,10 @@ object DatabaseFactory {
                 Coins,
                 
                 // Features module
-                FeatureFlags
+                FeatureFlags,
+                
+                // App Stats module
+                AppStats
             )
         }
         println("✅ Database tables created/verified!")
