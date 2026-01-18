@@ -3,126 +3,103 @@ name: Build and Deploy
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch:
 
 env:
   JAVA_VERSION: '17'
+  DEPLOY_DIR: /opt/apptime-backend
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK ${{ env.JAVA_VERSION }}
-      uses: actions/setup-java@v4
-      with:
-        java-version: ${{ env.JAVA_VERSION }}
-        distribution: 'temurin'
-        cache: 'gradle'
-        
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew
-      
-    - name: Build with Gradle
-      run: ./gradlew clean build shadowJar --no-daemon
-      
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-jar
-        path: build/libs/*.jar
-        retention-days: 7
-        
-    - name: Display build info
-      run: |
-        echo "Build completed successfully!"
-        ls -lh build/libs/*.jar
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build shadowJar --no-daemon -x test
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: build/libs/*.jar
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: app-jar
-        path: build/libs/
-        
-    - name: Display JAR files
-      run: ls -lh build/libs/
-      
-    
-        
-    - name: Restart application on GCP VM
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.GCP_VM_HOST }}
-        username: ${{ secrets.GCP_VM_USER }}
-        key: ${{ secrets.GCP_SSH_KEY }}
-        port:  22 
-        script: |
-          set -e
-          DEPLOY_DIR="/opt/apptime-backend"
-          cd "$DEPLOY_DIR"
-    
-          echo "📦 Deployment directory: $DEPLOY_DIR"
-          ls -lh *.jar || true
-    
-          pkill -f "AppTimeBackend.*jar" || true
-          sleep 2
-    
-          JAR_FILE=$(ls -t AppTimeBackend*.jar | head -n 1)
-          if [ -z "$JAR_FILE" ]; then
-            echo "❌ No JAR found"
-            exit 1
-          fi
-    
-          nohup java -Xms128m -Xmx384m \
-            -Dspring.main.lazy-initialization=true \
-            -jar "$JAR_FILE" > app.log 2>&1 &
-    
-          echo "🚀 App started"
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: build/libs
 
-      
-   
-    # Option 2: Deploy to Google Cloud Run (Alternative deployment method)
-    # Uncomment and configure if you want to use Cloud Run instead of SSH
-    # Note: Comment out the SSH deployment steps above if using Cloud Run
-    # - name: Authenticate to Google Cloud
-    #   uses: google-github-actions/auth@v2
-    #   with:
-    #     credentials_json: ${{ secrets.GCP_SA_KEY }}
-    #     
-    # - name: Set up Cloud SDK
-    #   uses: google-github-actions/setup-gcloud@v2
-    #   
-    # - name: Deploy to Cloud Run
-    #   run: |
-    #     gcloud run deploy apptime-backend \
-    #       --source . \
-    #       --platform managed \
-    #       --region us-central1 \
-    #       --allow-unauthenticated \
-    #       --set-env-vars DATABASE_URL=${{ secrets.DATABASE_URL }},DB_USER=${{ secrets.DB_USER }},DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
-    #       --memory 512Mi \
-    #       --cpu 1
-      
-    - name: Deployment summary
-      if: always()
-      run: |
-        echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-        echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Branch**: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Deployment Method**: SSH to GCP VM" >> $GITHUB_STEP_SUMMARY
+      - name: Verify artifact
+        run: ls -lh build/libs
 
+      # ✅ COPY JAR TO VM (THIS WAS MISSING BEFORE)
+      - name: Copy JAR to GCP VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.GCP_VM_HOST }}
+          username: ${{ secrets.GCP_VM_USER }}
+          key: ${{ secrets.GCP_SSH_KEY }}
+          port: 22
+          source: "build/libs/*.jar"
+          target: ${{ env.DEPLOY_DIR }}
+
+      # ✅ SSH + RESTART
+      - name: Restart application on GCP VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.GCP_VM_HOST }}
+          username: ${{ secrets.GCP_VM_USER }}
+          key: ${{ secrets.GCP_SSH_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 10m
+          script: |
+            set -e
+            cd $DEPLOY_DIR
+
+            echo "📦 Files in deploy dir:"
+            ls -lh *.jar
+
+            echo "🛑 Stopping old app (if any)"
+            pkill -f "java.*jar" || true
+            sleep 2
+
+            JAR_FILE=$(ls -t *.jar | head -n 1)
+            echo "🚀 Starting $JAR_FILE"
+
+            nohup java \
+              -Xms128m \
+              -Xmx384m \
+              -XX:MaxMetaspaceSize=128m \
+              -XX:+UseG1GC \
+              -Dspring.main.lazy-initialization=true \
+              -jar "$JAR_FILE" > app.log 2>&1 &
+
+            echo "✅ Deployment completed"
+
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Target: GCP VM via SSH" >> $GITHUB_STEP_SUMMARY
