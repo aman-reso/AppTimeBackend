@@ -1,5 +1,6 @@
 package com.apptime.code.challenges
 
+import com.apptime.code.notifications.NotificationService
 import kotlinx.datetime.Instant
 import java.time.LocalDate
 
@@ -7,7 +8,8 @@ import java.time.LocalDate
  * Challenge service layer - handles business logic
  */
 class ChallengeService(
-    private val repository: ChallengeRepository
+    private val repository: ChallengeRepository,
+    private val notificationService: NotificationService? = null
 ) {
     
     /**
@@ -45,6 +47,13 @@ class ChallengeService(
         
         // Join the challenge
         val joinedAt = repository.joinChallenge(userId, challengeId)
+        
+        // Send notification
+        notificationService?.sendChallengeJoinNotification(
+            userId = userId,
+            challengeTitle = challenge.title,
+            challengeId = challengeId
+        )
         
         return JoinChallengeResponse(
             challengeId = challengeId,

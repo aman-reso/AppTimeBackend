@@ -17,7 +17,10 @@ import io.ktor.server.routing.*
 fun Application.configureFocusRoutes() {
     val repository = FocusRepository()
     val leaderboardRepository = LeaderboardRepository()
-    val service = FocusService(repository, leaderboardRepository)
+    val notificationRepository = com.apptime.code.notifications.NotificationRepository()
+    val userRepository = users.UserRepository()
+    val notificationService = com.apptime.code.notifications.NotificationService(notificationRepository, userRepository)
+    val service = FocusService(repository, leaderboardRepository, notificationService)
     
     // Focus mode stats
     val focusModeStatsRepository = FocusModeStatsRepository()

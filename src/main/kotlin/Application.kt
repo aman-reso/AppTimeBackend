@@ -12,6 +12,7 @@ import com.apptime.code.leaderboard.configureLeaderboardRoutes
 import com.apptime.code.appstats.configureAppStatsRoutes
 import com.apptime.code.location.configureLocationRoutes
 import com.apptime.code.notifications.FirebaseNotificationService
+import com.apptime.code.notifications.configureNotificationRoutes
 import com.apptime.code.rewards.configureRewardRoutes
 import com.apptime.code.common.TranslationService
 import users.configureUserRoutes
@@ -58,6 +59,7 @@ fun Application.module() {
     configureLeaderboardRoutes()
     configureChallengeRoutes()
     configureRewardRoutes()
+    configureNotificationRoutes()
     configureFeatureFlagsRoutes()
     configureAdminRoutes()
     configureAppStatsRoutes()

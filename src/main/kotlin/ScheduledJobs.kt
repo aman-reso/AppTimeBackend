@@ -136,9 +136,12 @@ fun Application.configureScheduledJobs() {
     val leaderboardRepository = LeaderboardRepository()
     val leaderboardService = LeaderboardService(leaderboardRepository)
     val challengeRepository = ChallengeRepository()
-    val challengeService = ChallengeService(challengeRepository)
+    val notificationRepository = com.apptime.code.notifications.NotificationRepository()
+    val userRepository = users.UserRepository()
+    val notificationService = com.apptime.code.notifications.NotificationService(notificationRepository, userRepository)
+    val challengeService = ChallengeService(challengeRepository, notificationService)
     val rewardRepository = RewardRepository()
-    val rewardService = RewardService(rewardRepository, challengeRepository)
+    val rewardService = RewardService(rewardRepository, challengeRepository, notificationService)
     val scheduledJobs = ScheduledJobs(leaderboardService, challengeService, rewardService)
     
     // Start the leaderboard sync job

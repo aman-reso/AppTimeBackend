@@ -1,6 +1,7 @@
 package com.apptime.code.rewards
 
 import com.apptime.code.challenges.ChallengeRepository
+import com.apptime.code.notifications.NotificationService
 import kotlinx.datetime.Clock
 
 /**
@@ -8,7 +9,8 @@ import kotlinx.datetime.Clock
  */
 class RewardService(
     private val repository: RewardRepository,
-    private val challengeRepository: ChallengeRepository? = null
+    private val challengeRepository: ChallengeRepository? = null,
+    private val notificationService: NotificationService? = null
 ) {
     
     /**
@@ -83,6 +85,14 @@ class RewardService(
         }
         
         val claimedReward = repository.getRewardById(rewardId)!!
+        
+        // Send notification
+        notificationService?.sendRewardNotification(
+            userId = userId,
+            rewardTitle = reward.title,
+            rewardDescription = reward.description ?: "Reward claimed successfully",
+            rewardId = rewardId
+        )
         
         return ClaimRewardResponse(
             rewardId = rewardId,
@@ -220,7 +230,7 @@ class RewardService(
         // Batch create rewards
         repository.batchCreateRewards(rewardsToCreate)
         
-        // Also add coins for each winner
+        // Also add coins for each winner and send notifications
         // Coins are the same amount as points
         var coinsAdded = 0
         for (rewardRequest in rewardsToCreate) {
@@ -239,9 +249,20 @@ class RewardService(
                     addCoins(addCoinsRequest)
                     coinsAdded++
                 }
+                
+                // Send notification for challenge reward
+                rewardRequest.rank?.let {
+                    notificationService?.sendChallengeRewardNotification(
+                        userId = rewardRequest.userId,
+                        challengeTitle = challenge.title,
+                        rank = it,
+                        coins = rewardRequest.amount,
+                        challengeId = challengeId
+                    )
+                }
             } catch (e: Exception) {
                 // Log error but continue with other users
-                println("Failed to add coins for user ${rewardRequest.userId} in challenge $challengeId: ${e.message}")
+                println("Failed to add coins/notification for user ${rewardRequest.userId} in challenge $challengeId: ${e.message}")
             }
         }
         

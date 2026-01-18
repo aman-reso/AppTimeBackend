@@ -18,9 +18,12 @@ import io.ktor.server.routing.*
  */
 fun Application.configureChallengeRoutes() {
     val repository = ChallengeRepository()
-    val service = ChallengeService(repository)
+    val notificationRepository = com.apptime.code.notifications.NotificationRepository()
+    val userRepository = users.UserRepository()
+    val notificationService = com.apptime.code.notifications.NotificationService(notificationRepository, userRepository)
+    val service = ChallengeService(repository, notificationService)
     val rewardRepository = RewardRepository()
-    val rewardService = RewardService(rewardRepository, repository)
+    val rewardService = RewardService(rewardRepository, repository, notificationService)
     
     routing {
         route("/api/challenges") {

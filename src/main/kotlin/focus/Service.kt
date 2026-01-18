@@ -1,6 +1,7 @@
 package com.apptime.code.focus
 
 import com.apptime.code.leaderboard.LeaderboardRepository
+import com.apptime.code.notifications.NotificationService
 import kotlinx.datetime.Instant
 
 /**
@@ -8,7 +9,8 @@ import kotlinx.datetime.Instant
  */
 class FocusService(
     private val repository: FocusRepository,
-    private val leaderboardRepository: LeaderboardRepository
+    private val leaderboardRepository: LeaderboardRepository,
+    private val notificationService: NotificationService? = null
 ) {
     
     /**
@@ -101,6 +103,9 @@ class FocusService(
                 focusDuration = request.focusDuration,
                 date = date
             )
+            
+            // Check for focus milestones and send notifications
+            checkAndNotifyFocusMilestones(userId, request.focusDuration)
         }
         
         return result
@@ -175,6 +180,54 @@ class FocusService(
      */
     suspend fun getFocusStats(userId: String): FocusDurationStatsResponse {
         return repository.getFocusStats(userId)
+    }
+    
+    /**
+     * Check for focus milestones and send notifications
+     * Milestones: 1 hour, 5 hours, 10 hours, 25 hours, 50 hours, 100 hours
+     */
+    private suspend fun checkAndNotifyFocusMilestones(userId: String, newFocusDuration: Long) {
+        if (notificationService == null) return
+        
+        try {
+            val stats = repository.getFocusStats(userId)
+            val totalFocusTimeMs = stats.totalFocusTime
+            
+            // Convert to hours for milestone checking
+            val totalFocusHours = totalFocusTimeMs / (1000 * 60 * 60)
+            val previousFocusHours = (totalFocusTimeMs - newFocusDuration) / (1000 * 60 * 60)
+            
+            // Define milestones (in hours)
+            val milestones = listOf(1, 5, 10, 25, 50, 100, 250, 500, 1000)
+            
+            // Check if user crossed any milestone
+            for (milestone in milestones) {
+                if (totalFocusHours >= milestone && previousFocusHours < milestone) {
+                    val milestoneText = when (milestone) {
+                        1 -> "1 hour"
+                        5 -> "5 hours"
+                        10 -> "10 hours"
+                        25 -> "25 hours"
+                        50 -> "50 hours"
+                        100 -> "100 hours"
+                        250 -> "250 hours"
+                        500 -> "500 hours"
+                        1000 -> "1000 hours"
+                        else -> "$milestone hours"
+                    }
+                    
+                    notificationService.sendFocusMilestoneNotification(
+                        userId = userId,
+                        milestone = milestoneText,
+                        focusTime = totalFocusTimeMs
+                    )
+                    break // Only notify for the highest milestone crossed
+                }
+            }
+        } catch (e: Exception) {
+            // Log error but don't fail the focus session submission
+            println("Failed to check focus milestones: ${e.message}")
+        }
     }
 }
 
