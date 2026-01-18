@@ -94,7 +94,7 @@ jobs:
             mv -f "$JAR_PATH" ./app.jar
             
             echo "🛑 Stopping old app (if any)"
-            pkill -f "java.*app.jar" || true
+            pkill -f "java -jar build/libs/AppTimeBackend" || true
             sleep 2
             
             echo "🚀 Starting app.jar"
