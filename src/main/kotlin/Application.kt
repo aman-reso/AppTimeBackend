@@ -63,7 +63,7 @@ fun Application.module() {
     configureAppStatsRoutes()
     
     // Configure scheduled jobs (cronjobs)
-    //configureScheduledJobs()
+    configureScheduledJobs()
 
     routing {
         // Serve admin dashboard

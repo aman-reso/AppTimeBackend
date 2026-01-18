@@ -200,6 +200,25 @@ class ChallengeRepository {
     }
     
     /**
+     * Get challenges that have ended recently (in the last 24 hours)
+     * These are candidates for awarding rewards
+     */
+    fun getRecentlyEndedChallenges(): List<Long> {
+        return dbTransaction {
+            val now = Clock.System.now()
+            // Get challenges that ended in the last 24 hours (86,400,000 milliseconds = 1 day)
+            val oneDayAgo = Instant.fromEpochMilliseconds(now.toEpochMilliseconds() - (24 * 60 * 60 * 1000).toLong())
+            
+            Challenges.select {
+                (Challenges.isActive eq true) and
+                (Challenges.endTime lessEq now) and
+                (Challenges.endTime greaterEq oneDayAgo)
+            }
+            .map { it[Challenges.id] }
+        }
+    }
+    
+    /**
      * Get challenge detail with participant count
      * @param userId Optional user ID to check if user has joined the challenge
      */

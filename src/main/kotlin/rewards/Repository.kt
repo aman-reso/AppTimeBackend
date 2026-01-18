@@ -196,6 +196,26 @@ class RewardRepository {
     }
     
     /**
+     * Check if user already has coins for a challenge and rank
+     * (to prevent duplicate coin awards)
+     */
+    fun hasChallengeCoin(userId: String, challengeId: Long, rank: Int?): Boolean {
+        return dbTransaction {
+            val query = Coins.select {
+                (Coins.userId eq userId) and
+                (Coins.challengeId eq challengeId) and
+                (Coins.coinSource eq CoinSource.CHALLENGE_WIN.name)
+            }
+            
+            if (rank != null) {
+                query.andWhere { Coins.rank eq rank }
+            }
+            
+            query.count() > 0
+        }
+    }
+    
+    /**
      * Get rewards by challenge ID
      */
     fun getRewardsByChallenge(challengeId: Long): List<Reward> {

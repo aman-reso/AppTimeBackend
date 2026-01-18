@@ -214,6 +214,31 @@ class RewardService(
         // Batch create rewards
         repository.batchCreateRewards(rewardsToCreate)
         
+        // Also add coins for each winner
+        // Coins are the same amount as points
+        var coinsAdded = 0
+        for (rewardRequest in rewardsToCreate) {
+            try {
+                // Check if coins were already added (prevent duplicates)
+                if (!repository.hasChallengeCoin(rewardRequest.userId, challengeId, rewardRequest.rank)) {
+                    val addCoinsRequest = AddCoinsRequest(
+                        userId = rewardRequest.userId,
+                        amount = rewardRequest.amount, // Same amount as points
+                        source = CoinSource.CHALLENGE_WIN.name,
+                        description = rewardRequest.description,
+                        challengeId = rewardRequest.challengeId,
+                        challengeTitle = rewardRequest.challengeTitle,
+                        rank = rewardRequest.rank
+                    )
+                    addCoins(addCoinsRequest)
+                    coinsAdded++
+                }
+            } catch (e: Exception) {
+                // Log error but continue with other users
+                println("Failed to add coins for user ${rewardRequest.userId} in challenge $challengeId: ${e.message}")
+            }
+        }
+        
         return AwardChallengeRewardsResponse(
             challengeId = challengeId,
             challengeTitle = challenge.title,
