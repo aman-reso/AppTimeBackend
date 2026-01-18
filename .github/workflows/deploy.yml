@@ -64,7 +64,7 @@ jobs:
           target: ${{ env.DEPLOY_DIR }}
 
       # ✅ SSH + RESTART
-      - name: Restart application on GCP VM
+      - - name: Restart application on GCP VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.GCP_VM_HOST }}
@@ -73,33 +73,32 @@ jobs:
           port: 22
           timeout: 30s
           command_timeout: 10m
+      
+          # 🔑 THESE TWO LINES ARE CRITICAL
           sync: false
-          
+          request_pty: false
+      
           script: |
             set -e
             cd /opt/apptime-backend
-            
+      
             echo "📦 Finding JAR files..."
             find . -name "*.jar" -type f
-            
-            # Move JAR to root deploy dir
+      
             JAR_PATH=$(find . -name "*.jar" -type f | head -n 1)
-            
             if [ -z "$JAR_PATH" ]; then
-              echo "❌ No JAR found anywhere in deploy directory"
+              echo "❌ No JAR found"
               exit 1
             fi
-            
+      
             echo "✅ Found JAR at $JAR_PATH"
             mv -f "$JAR_PATH" ./app.jar
-            
+      
             echo "🛑 Stopping old app (if any)"
             pkill -f "java -jar build/libs/AppTimeBackend" || true
             sleep 2
-            
+      
             echo "🚀 Starting app.jar"
-            
-            # 🔑 FULLY DETACH FROM SSH SESSION
             setsid nohup java \
               -Xms128m \
               -Xmx384m \
@@ -107,11 +106,10 @@ jobs:
               -XX:+UseG1GC \
               -Dspring.main.lazy-initialization=true \
               -jar app.jar > app.log 2>&1 < /dev/null &
-            
+      
             disown || true
-            
             echo "✅ Deployment completed successfully"
-            exit 0
+
 
 
       - name: Deployment summary
