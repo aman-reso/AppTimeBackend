@@ -76,9 +76,9 @@ jobs:
     - name: Restart application on GCP VM
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.DEPLOY_HOST }}
-        username: ${{ secrets.DEPLOY_USER }}
-        key: ${{ secrets.DEPLOY_SSH_KEY }}
+        host: ${{ secrets.GCP_VM_HOST }}
+        username: ${{ secrets.GCP_VM_USER }}
+        key: ${{ secrets.GCP_SSH_KEY }}
         port: ${{ secrets.DEPLOY_PORT || 22 }}
         script: |
           set -e
