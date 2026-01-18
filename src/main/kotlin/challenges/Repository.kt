@@ -106,6 +106,7 @@ class ChallengeRepository {
                         title = row[Challenges.title],
                         description = row[Challenges.description],
                         reward = row[Challenges.reward],
+                        prize = row[Challenges.prize],
                         startTime = row[Challenges.startTime].toString(),
                         endTime = row[Challenges.endTime].toString(),
                         thumbnail = row[Challenges.thumbnail],

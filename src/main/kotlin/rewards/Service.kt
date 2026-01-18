@@ -174,29 +174,35 @@ class RewardService(
                 currentRank = index + 1
             }
             // Note: currentRank is already initialized to 1 for the first entry
+
+            val prize = challengeRepository.getChallengeById(challengeId)!!.prize;
+
+            val coins = prize?.split(" ")?.get(0)?.toLong()
             
             val points = when (currentRank) {
-                1 -> 1000L
-                2 -> 500L
-                3 -> 250L
-                else -> 100L
+                1 -> coins
+                2 -> coins//2
+                3 -> coins//4
+                else -> 0
             }
             
             // Check if user already has a reward for this challenge and rank
             if (!repository.hasChallengeReward(userId, challengeId, currentRank)) {
-                rewardsToCreate.add(
-                    CreateRewardRequest(
-                        userId = userId,
-                        type = RewardType.POINTS.name,
-                        source = RewardSource.CHALLENGE_WIN.name,
-                        title = "Challenge Winner - Rank $currentRank",
-                        description = "Won rank $currentRank in challenge: ${challenge.title}",
-                        amount = points,
-                        challengeId = challengeId,
-                        challengeTitle = challenge.title,
-                        rank = currentRank
+                if (points != null) {
+                    rewardsToCreate.add(
+                        CreateRewardRequest(
+                            userId = userId,
+                            type = RewardType.POINTS.name,
+                            source = RewardSource.CHALLENGE_WIN.name,
+                            title = "Challenge Winner - Rank $currentRank",
+                            description = "Won rank $currentRank in challenge: ${challenge.title}",
+                            amount = points.toLong(),
+                            challengeId = challengeId,
+                            challengeTitle = challenge.title,
+                            rank = currentRank
+                        )
                     )
-                )
+                }
             }
             
             previousDuration = totalDuration

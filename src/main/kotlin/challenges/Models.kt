@@ -39,6 +39,7 @@ data class Challenge(
     val title: String,
     val description: String? = null,
     val reward: String? = null,
+    val prize: String?,
     val startTime: String, // ISO 8601 format
     val endTime: String,   // ISO 8601 format
     val thumbnail: String? = null,
