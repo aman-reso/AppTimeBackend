@@ -73,6 +73,8 @@ jobs:
           port: 22
           timeout: 30s
           command_timeout: 10m
+          sync: false
+          
           script: |
             set -e
             cd /opt/apptime-backend
