@@ -75,27 +75,37 @@ jobs:
           command_timeout: 10m
           script: |
             set -e
-            cd $DEPLOY_DIR
-
-            echo "📦 Files in deploy dir:"
-            ls -lh *.jar
-
+            cd /opt/apptime-backend
+            
+            echo "📦 Finding JAR files..."
+            find . -name "*.jar" -type f
+            
+            # Move JAR to root deploy dir
+            JAR_PATH=$(find . -name "*.jar" -type f | head -n 1)
+            
+            if [ -z "$JAR_PATH" ]; then
+              echo "❌ No JAR found anywhere in deploy directory"
+              exit 1
+            fi
+            
+            echo "✅ Found JAR at $JAR_PATH"
+            mv "$JAR_PATH" ./app.jar
+            
             echo "🛑 Stopping old app (if any)"
-            pkill -f "java.*jar" || true
+            pkill -f "java.*app.jar" || true
             sleep 2
-
-            JAR_FILE=$(ls -t *.jar | head -n 1)
-            echo "🚀 Starting $JAR_FILE"
-
+            
+            echo "🚀 Starting app.jar"
             nohup java \
               -Xms128m \
               -Xmx384m \
               -XX:MaxMetaspaceSize=128m \
               -XX:+UseG1GC \
               -Dspring.main.lazy-initialization=true \
-              -jar "$JAR_FILE" > app.log 2>&1 &
+              -jar app.jar > app.log 2>&1 &
+            
+            echo "✅ Deployment completed successfully"
 
-            echo "✅ Deployment completed"
 
       - name: Deployment summary
         run: |
