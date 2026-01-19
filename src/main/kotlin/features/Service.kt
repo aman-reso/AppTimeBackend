@@ -1,5 +1,7 @@
 package com.apptime.code.features
 
+import com.apptime.code.common.EnvLoader
+
 /**
  * Service layer for feature flags
  */
@@ -23,8 +25,20 @@ class FeatureFlagsService(private val repository: FeatureFlagsRepository) {
             .map { it.featureName }
             .sorted() // Sort alphabetically for consistent ordering
         
+        // Read configuration values from environment variables
+        val challengeBannerURL = EnvLoader.getEnv("CHALLENGE_BANNER_URL")
+        val wallpaperBannerURL = EnvLoader.getEnv("WALLPAPER_BANNER_URL")
+        val adWeightage = EnvLoader.getEnv("AD_WEIGHTAGE")?.toIntOrNull()
+        val wallpaperBaseURL = EnvLoader.getEnv("WALLPAPER_BASE_URL")
+        
         return FeatureFlagsResponse(
-            features = FeatureFlagsInner(enabled = enabledFeatures)
+            features = FeatureFlagsInner(
+                enabled = enabledFeatures,
+                challangeBannerURL = challengeBannerURL,
+                wallpaperBannerURL = wallpaperBannerURL,
+                adWeightage = adWeightage,
+                wallpaperBaseURL = wallpaperBaseURL
+            )
         )
     }
     

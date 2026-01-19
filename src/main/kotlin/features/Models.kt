@@ -34,7 +34,11 @@ data class FeatureFlag(
  */
 @Serializable
 data class FeatureFlagsInner(
-    val enabled: List<String> // List of enabled feature names
+    val enabled: List<String>, // List of enabled feature names
+    val challangeBannerURL: String? = null, // Challenge banner URL (note: keeping user's spelling)
+    val wallpaperBannerURL: String? = null, // Wallpaper banner URL
+    val adWeightage: Int? = null, // Ad weightage
+    val wallpaperBaseURL: String? = null // Wallpaper base URL
 )
 
 /**
@@ -74,5 +78,28 @@ data class FeatureEvaluationParams(
     val appVersion: String? = null,
     val language: String? = null,
     val userId: String? = null
+)
+
+/**
+ * Feature configuration model - stores global feature settings
+ */
+@Serializable
+data class FeatureConfiguration(
+    val challengeBannerURL: String? = null,
+    val wallpaperBannerURL: String? = null,
+    val adWeightage: Int? = null,
+    val wallpaperBaseURL: String? = null,
+    val updatedAt: String? = null
+)
+
+/**
+ * Request to update feature configuration
+ */
+@Serializable
+data class UpdateFeatureConfigurationRequest(
+    val challengeBannerURL: String? = null,
+    val wallpaperBannerURL: String? = null,
+    val adWeightage: Int? = null,
+    val wallpaperBaseURL: String? = null
 )
 
