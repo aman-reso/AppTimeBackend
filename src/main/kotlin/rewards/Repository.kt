@@ -661,6 +661,22 @@ class RewardRepository {
     }
     
     /**
+     * Check if user has any in-progress transactions (not DELIVERED or CANCELLED)
+     */
+    fun hasInProgressTransaction(userId: String): Boolean {
+        return dbTransaction {
+            val completedStatuses = listOf(
+                TransactionStatus.DELIVERED.name,
+                TransactionStatus.CANCELLED.name
+            )
+            Transactions.select {
+                (Transactions.userId eq userId) and
+                (Transactions.status notInList completedStatuses)
+            }.count() > 0
+        }
+    }
+    
+    /**
      * Get transaction by ID
      */
     fun getTransactionById(transactionId: Long): Transaction? {

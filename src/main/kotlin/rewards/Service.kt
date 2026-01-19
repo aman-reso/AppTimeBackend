@@ -489,16 +489,22 @@ class RewardService(
     /**
      * Claim a reward (create a transaction)
      * This will:
-     * 1. Check if user has enough coins
-     * 2. Check if reward is available and in stock
-     * 3. Deduct coins from user's account
-     * 4. Create transaction
-     * 5. Update stock if applicable
+     * 1. Check if user has any in-progress transactions (prevent multiple claims)
+     * 2. Check if user has enough coins
+     * 3. Check if reward is available and in stock
+     * 4. Deduct coins from user's account
+     * 5. Create transaction
+     * 6. Update stock if applicable
      */
     suspend fun claimRewardCatalog(
         userId: String,
         request: ClaimRewardCatalogRequest
     ): ClaimRewardCatalogResponse {
+        // Check if user has any in-progress transactions
+        if (repository.hasInProgressTransaction(userId)) {
+            throw IllegalStateException("You have a reward claim in progress. Please wait until your current order is completed or delivered before claiming another reward.")
+        }
+        
         // Get reward catalog item
         val catalogItem = repository.getRewardCatalogById(request.rewardCatalogId)
             ?: throw IllegalArgumentException("Reward not found")
