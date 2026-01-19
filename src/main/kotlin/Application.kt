@@ -5,6 +5,7 @@ import com.apptime.code.admin.configureAdminRoutes
 import com.apptime.code.challenges.configureChallengeRoutes
 import com.apptime.code.common.configureAuthentication
 import com.apptime.code.common.configureHeaderTracking
+import com.apptime.code.common.configureApiSecretKey
 import com.apptime.code.consents.configureConsentRoutes
 import com.apptime.code.feedback.configureFeedbackRoutes
 import com.apptime.code.features.configureFeatureFlagsRoutes
@@ -50,6 +51,9 @@ fun Application.module() {
 
     // Configure header tracking for all APIs (X-App-Language and X-App-Version)
     configureHeaderTracking()
+    
+    // Configure API secret key validation for all frontend API requests
+    configureApiSecretKey()
 
     configureAuthentication()
     configureUserRoutes()
