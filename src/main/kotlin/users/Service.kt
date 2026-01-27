@@ -1,12 +1,18 @@
 package users
 
+import com.apptime.code.rewards.RewardRepository
+import com.apptime.code.rewards.CoinSource
+import com.apptime.code.notifications.NotificationQueueService
+
 /**
  * User service layer - handles business logic
  */
 class UserService(private val repository: UserRepository) {
+    private val rewardRepository = RewardRepository()
     
     /**
      * Register a new device
+     * New users receive 10 welcome bonus coins
      */
     suspend fun registerDevice(request: DeviceRegistrationRequest): DeviceRegistrationResponse {
         // Validate device info
@@ -14,7 +20,51 @@ class UserService(private val repository: UserRepository) {
             throw IllegalArgumentException("Device ID is required")
         }
         
-        return repository.registerDevice(request.deviceInfo, request.firebaseToken)
+        // Check if user already exists before registration
+        val existingUser = repository.userExistsByDeviceId(request.deviceInfo.deviceId)
+        
+        // Register the device
+        val response = repository.registerDevice(request.deviceInfo, request.firebaseToken)
+        
+        // If this is a new user (not existing), give welcome bonus
+        if (!existingUser) {
+            try {
+                println("🎉 [Welcome Bonus] New user registered: ${response.userId}")
+                
+                // Add 10 welcome bonus coins
+                val coinId = rewardRepository.addCoins(
+                    userId = response.userId,
+                    amount = 10L,
+                    source = CoinSource.ADMIN_GRANT,
+                    description = "Welcome bonus! Thanks for joining our platform.",
+                    challengeId = null,
+                    challengeTitle = null,
+                    rank = null,
+                    metadata = "{\"type\": \"welcome_bonus\"}",
+                    expiresAt = null
+                )
+                
+                println("💰 [Welcome Bonus] Added 10 coins to user ${response.userId}, coin ID: $coinId")
+                
+                // Send welcome notification
+                NotificationQueueService.enqueueCoinsAddedNotification(
+                    userId = response.userId,
+                    amount = 10L,
+                    source = CoinSource.ADMIN_GRANT.name,
+                    description = "Welcome bonus! Thanks for joining our platform."
+                )
+                
+                println("✅ [Welcome Bonus] Enqueued welcome notification for user ${response.userId}")
+            } catch (e: Exception) {
+                // Log error but don't fail registration if bonus fails
+                println("❌ [Welcome Bonus] Failed to add welcome bonus for user ${response.userId}: ${e.message}")
+                e.printStackTrace()
+            }
+        } else {
+            println("👤 [Registration] Existing user logged in: ${response.userId}")
+        }
+        
+        return response
     }
     
     /**

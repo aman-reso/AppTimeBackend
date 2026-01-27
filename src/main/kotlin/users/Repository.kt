@@ -166,6 +166,16 @@ class UserRepository {
     }
     
     /**
+     * Check if user exists by device ID
+     * Used to determine if this is a new user registration or returning user
+     */
+    fun userExistsByDeviceId(deviceId: String): Boolean {
+        return dbTransaction {
+            Users.select { Users.deviceId eq deviceId }.count() > 0
+        }
+    }
+    
+    /**
      * Check if user is blocked
      */
     fun isUserBlocked(userId: String): Boolean {
