@@ -94,6 +94,106 @@ object NotificationQueueService {
     }
     
     /**
+     * Enqueue coins added notification
+     */
+    suspend fun enqueueCoinsAddedNotification(
+        userId: String,
+        amount: Long,
+        source: String,
+        description: String?
+    ) {
+        val message = CoinsAddedNotificationMessage(
+            messageId = UUID.randomUUID().toString(),
+            timestamp = Clock.System.now().toEpochMilliseconds(),
+            userId = userId,
+            amount = amount,
+            source = source,
+            description = description
+        )
+        enqueue(message)
+    }
+    
+    /**
+     * Enqueue reward catalog claimed notification
+     */
+    suspend fun enqueueRewardCatalogClaimedNotification(
+        userId: String,
+        rewardTitle: String,
+        coinPrice: Long,
+        transactionNumber: String,
+        remainingCoins: Long
+    ) {
+        val message = RewardCatalogClaimedNotificationMessage(
+            messageId = UUID.randomUUID().toString(),
+            timestamp = Clock.System.now().toEpochMilliseconds(),
+            userId = userId,
+            rewardTitle = rewardTitle,
+            coinPrice = coinPrice,
+            transactionNumber = transactionNumber,
+            remainingCoins = remainingCoins
+        )
+        enqueue(message)
+    }
+    
+    /**
+     * Enqueue transaction status update notification
+     */
+    suspend fun enqueueTransactionStatusNotification(
+        userId: String,
+        transactionNumber: String,
+        rewardTitle: String,
+        status: String,
+        trackingNumber: String?
+    ) {
+        val message = TransactionStatusNotificationMessage(
+            messageId = UUID.randomUUID().toString(),
+            timestamp = Clock.System.now().toEpochMilliseconds(),
+            userId = userId,
+            transactionNumber = transactionNumber,
+            rewardTitle = rewardTitle,
+            status = status,
+            trackingNumber = trackingNumber
+        )
+        enqueue(message)
+    }
+    
+    /**
+     * Enqueue low balance warning notification
+     */
+    suspend fun enqueueLowBalanceNotification(
+        userId: String,
+        currentBalance: Long
+    ) {
+        val message = LowBalanceNotificationMessage(
+            messageId = UUID.randomUUID().toString(),
+            timestamp = Clock.System.now().toEpochMilliseconds(),
+            userId = userId,
+            currentBalance = currentBalance
+        )
+        enqueue(message)
+    }
+    
+    /**
+     * Enqueue reward back in stock notification
+     */
+    suspend fun enqueueRewardBackInStockNotification(
+        userIds: List<String>,
+        rewardTitle: String,
+        rewardCatalogId: Long,
+        coinPrice: Long
+    ) {
+        val message = RewardBackInStockNotificationMessage(
+            messageId = UUID.randomUUID().toString(),
+            timestamp = Clock.System.now().toEpochMilliseconds(),
+            userIds = userIds,
+            rewardTitle = rewardTitle,
+            rewardCatalogId = rewardCatalogId,
+            coinPrice = coinPrice
+        )
+        enqueue(message)
+    }
+    
+    /**
      * Get queue size
      */
     fun getQueueSize(): Int {
@@ -109,6 +209,26 @@ object NotificationQueueService {
             totalEnqueued = totalEnqueued,
             totalProcessed = totalProcessed,
             totalFailed = totalFailed
+        )
+    }
+    
+    /**
+     * Get detailed statistics with breakdown by notification type
+     */
+    fun stats(): Map<String, Any> {
+        val messageTypes = mutableMapOf<String, Int>()
+        queue.forEach { message ->
+            val typeName = message::class.simpleName ?: "Unknown"
+            messageTypes[typeName] = messageTypes.getOrDefault(typeName, 0) + 1
+        }
+        
+        return mapOf(
+            "queueSize" to queue.size,
+            "totalEnqueued" to totalEnqueued,
+            "totalProcessed" to totalProcessed,
+            "totalFailed" to totalFailed,
+            "isStarted" to started,
+            "messagesByType" to messageTypes
         )
     }
     
@@ -202,6 +322,118 @@ object NotificationQueueService {
                                 totalProcessed++
                             }
                             logger.info("Worker $workerId successfully processed challenge winner notification: ${message.messageId}")
+                        }
+                        
+                        is CoinsAddedNotificationMessage -> {
+                            logger.info("Worker $workerId processing coins added notification: ${message.messageId} for user ${message.userId}")
+                            try {
+                                notificationService.sendCoinsAddedNotification(
+                                    userId = message.userId,
+                                    amount = message.amount,
+                                    source = message.source,
+                                    description = message.description
+                                )
+                                logger.info("Worker $workerId successfully sent coins added notification to user ${message.userId}")
+                            } catch (e: Exception) {
+                                logger.severe("Worker $workerId failed to send coins added notification: ${e.message}")
+                                logger.severe("Exception: ${e.stackTraceToString()}")
+                                throw e
+                            }
+                            mutex.withLock {
+                                queue.remove(message)
+                                totalProcessed++
+                            }
+                            logger.info("Worker $workerId successfully processed coins added notification: ${message.messageId}")
+                        }
+                        
+                        is RewardCatalogClaimedNotificationMessage -> {
+                            logger.info("Worker $workerId processing reward catalog claimed notification: ${message.messageId} for user ${message.userId}")
+                            try {
+                                notificationService.sendRewardCatalogClaimedNotification(
+                                    userId = message.userId,
+                                    rewardTitle = message.rewardTitle,
+                                    coinPrice = message.coinPrice,
+                                    transactionNumber = message.transactionNumber,
+                                    remainingCoins = message.remainingCoins
+                                )
+                                logger.info("Worker $workerId successfully sent reward catalog claimed notification to user ${message.userId}")
+                            } catch (e: Exception) {
+                                logger.severe("Worker $workerId failed to send reward catalog claimed notification: ${e.message}")
+                                logger.severe("Exception: ${e.stackTraceToString()}")
+                                throw e
+                            }
+                            mutex.withLock {
+                                queue.remove(message)
+                                totalProcessed++
+                            }
+                            logger.info("Worker $workerId successfully processed reward catalog claimed notification: ${message.messageId}")
+                        }
+                        
+                        is TransactionStatusNotificationMessage -> {
+                            logger.info("Worker $workerId processing transaction status notification: ${message.messageId} for user ${message.userId}")
+                            try {
+                                notificationService.sendTransactionStatusNotification(
+                                    userId = message.userId,
+                                    transactionNumber = message.transactionNumber,
+                                    rewardTitle = message.rewardTitle,
+                                    status = message.status,
+                                    trackingNumber = message.trackingNumber
+                                )
+                                logger.info("Worker $workerId successfully sent transaction status notification to user ${message.userId}")
+                            } catch (e: Exception) {
+                                logger.severe("Worker $workerId failed to send transaction status notification: ${e.message}")
+                                logger.severe("Exception: ${e.stackTraceToString()}")
+                                throw e
+                            }
+                            mutex.withLock {
+                                queue.remove(message)
+                                totalProcessed++
+                            }
+                            logger.info("Worker $workerId successfully processed transaction status notification: ${message.messageId}")
+                        }
+                        
+                        is LowBalanceNotificationMessage -> {
+                            logger.info("Worker $workerId processing low balance notification: ${message.messageId} for user ${message.userId}")
+                            try {
+                                notificationService.sendLowBalanceNotification(
+                                    userId = message.userId,
+                                    currentBalance = message.currentBalance
+                                )
+                                logger.info("Worker $workerId successfully sent low balance notification to user ${message.userId}")
+                            } catch (e: Exception) {
+                                logger.severe("Worker $workerId failed to send low balance notification: ${e.message}")
+                                logger.severe("Exception: ${e.stackTraceToString()}")
+                                throw e
+                            }
+                            mutex.withLock {
+                                queue.remove(message)
+                                totalProcessed++
+                            }
+                            logger.info("Worker $workerId successfully processed low balance notification: ${message.messageId}")
+                        }
+                        
+                        is RewardBackInStockNotificationMessage -> {
+                            logger.info("Worker $workerId processing reward back in stock notification: ${message.messageId} for ${message.userIds.size} users")
+                            try {
+                                for (userId in message.userIds) {
+                                    notificationService.sendRewardBackInStockNotification(
+                                        userId = userId,
+                                        rewardTitle = message.rewardTitle,
+                                        rewardCatalogId = message.rewardCatalogId,
+                                        coinPrice = message.coinPrice
+                                    )
+                                }
+                                logger.info("Worker $workerId successfully sent reward back in stock notifications to ${message.userIds.size} users")
+                            } catch (e: Exception) {
+                                logger.severe("Worker $workerId failed to send reward back in stock notifications: ${e.message}")
+                                logger.severe("Exception: ${e.stackTraceToString()}")
+                                throw e
+                            }
+                            mutex.withLock {
+                                queue.remove(message)
+                                totalProcessed++
+                            }
+                            logger.info("Worker $workerId successfully processed reward back in stock notification: ${message.messageId}")
                         }
                     }
                 } catch (e: Exception) {

@@ -284,5 +284,171 @@ class NotificationService(
             deeplink = "app://home"
         )
     }
+    
+    // ========== REWARD & COINS NOTIFICATION METHODS ==========
+    
+    /**
+     * Send coins added notification
+     * Notifies user when coins are added to their account
+     */
+    suspend fun sendCoinsAddedNotification(
+        userId: String,
+        amount: Long,
+        source: String,
+        description: String?
+    ) {
+        val sourceText = when (source.uppercase()) {
+            "CHALLENGE_WIN" -> "winning a challenge"
+            "CHALLENGE_PARTICIPATION" -> "participating in a challenge"
+            "DAILY_LOGIN" -> "daily login"
+            "STREAK_MILESTONE" -> "reaching a streak milestone"
+            "REFERRAL" -> "referring a friend"
+            "ACHIEVEMENT" -> "completing an achievement"
+            "ADMIN_GRANT" -> "admin grant"
+            "PURCHASE" -> "purchase"
+            else -> "activity"
+        }
+        
+        val text = if (description != null) {
+            "You earned $amount coins for $sourceText: $description"
+        } else {
+            "You earned $amount coins for $sourceText!"
+        }
+        
+        createAndSendNotification(
+            userId = userId,
+            title = "Coins Earned! 💰",
+            text = text,
+            type = "coins_added",
+            deeplink = "app://rewards/coins"
+        )
+    }
+    
+    /**
+     * Send reward catalog claimed notification
+     * Notifies user when they successfully claim a reward from catalog
+     */
+    suspend fun sendRewardCatalogClaimedNotification(
+        userId: String,
+        rewardTitle: String,
+        coinPrice: Long,
+        transactionNumber: String,
+        remainingCoins: Long
+    ) {
+        createAndSendNotification(
+            userId = userId,
+            title = "Reward Claimed! 🎁",
+            text = "You've successfully claimed '$rewardTitle' for $coinPrice coins! Order #$transactionNumber. You have $remainingCoins coins remaining.",
+            type = "reward_claimed",
+            deeplink = "app://rewards/transactions/$transactionNumber"
+        )
+    }
+    
+    /**
+     * Send transaction status update notification
+     * Notifies user about order status changes
+     */
+    suspend fun sendTransactionStatusNotification(
+        userId: String,
+        transactionNumber: String,
+        rewardTitle: String,
+        status: String,
+        trackingNumber: String?
+    ) {
+        val (title, text) = when (status.uppercase()) {
+            "PENDING" -> Pair(
+                "Order Placed! 📦",
+                "Your order #$transactionNumber for '$rewardTitle' has been placed and is awaiting processing."
+            )
+            "PROCESSING" -> Pair(
+                "Order Processing 🔄",
+                "Your order #$transactionNumber for '$rewardTitle' is being prepared."
+            )
+            "SHIPPED" -> {
+                val trackingText = if (trackingNumber != null) {
+                    " Tracking number: $trackingNumber"
+                } else ""
+                Pair(
+                    "Order Shipped! 🚚",
+                    "Your order #$transactionNumber for '$rewardTitle' has been shipped!$trackingText"
+                )
+            }
+            "DELIVERED" -> Pair(
+                "Order Delivered! ✅",
+                "Your order #$transactionNumber for '$rewardTitle' has been delivered. Enjoy your reward!"
+            )
+            "CANCELLED" -> Pair(
+                "Order Cancelled ❌",
+                "Your order #$transactionNumber for '$rewardTitle' has been cancelled. Your coins have been refunded."
+            )
+            else -> Pair(
+                "Order Update 📋",
+                "Your order #$transactionNumber for '$rewardTitle' has been updated to: $status"
+            )
+        }
+        
+        createAndSendNotification(
+            userId = userId,
+            title = title,
+            text = text,
+            type = "transaction_status",
+            deeplink = "app://rewards/transactions/$transactionNumber"
+        )
+    }
+    
+    /**
+     * Send low balance notification
+     * Warns user when their coin balance is low
+     */
+    suspend fun sendLowBalanceNotification(
+        userId: String,
+        currentBalance: Long
+    ) {
+        createAndSendNotification(
+            userId = userId,
+            title = "Low Coin Balance ⚠️",
+            text = "You only have $currentBalance coins remaining. Complete challenges to earn more coins!",
+            type = "low_balance",
+            deeplink = "app://challenges"
+        )
+    }
+    
+    /**
+     * Send reward back in stock notification
+     * Notifies users when a previously out-of-stock reward is available again
+     */
+    suspend fun sendRewardBackInStockNotification(
+        userId: String,
+        rewardTitle: String,
+        rewardCatalogId: Long,
+        coinPrice: Long
+    ) {
+        createAndSendNotification(
+            userId = userId,
+            title = "Reward Back in Stock! 🎉",
+            text = "'$rewardTitle' is back in stock for $coinPrice coins! Claim it before it's gone again.",
+            type = "reward_back_in_stock",
+            deeplink = "app://rewards/catalog/$rewardCatalogId"
+        )
+    }
+    
+    /**
+     * Send coins spent notification
+     * Notifies user when coins are deducted (redemption)
+     */
+    suspend fun sendCoinsSpentNotification(
+        userId: String,
+        amount: Long,
+        rewardTitle: String,
+        remainingCoins: Long
+    ) {
+        createAndSendNotification(
+            userId = userId,
+            title = "Coins Spent 💸",
+            text = "You spent $amount coins on '$rewardTitle'. You have $remainingCoins coins remaining.",
+            type = "coins_spent",
+            deeplink = "app://rewards/coins"
+        )
+    }
 }
 

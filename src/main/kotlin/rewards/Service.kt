@@ -440,7 +440,26 @@ class RewardService(
             expiresAt = expiresAt
         )
         
-        return repository.getCoinById(coinId)!!
+        val coin = repository.getCoinById(coinId)!!
+        
+        // Send notification for positive coin additions (not redemptions)
+        // Skip notifications for challenge wins as they are handled separately
+        if (request.amount > 0 && source != CoinSource.CHALLENGE_WIN) {
+            try {
+                NotificationQueueService.enqueueCoinsAddedNotification(
+                    userId = request.userId,
+                    amount = request.amount,
+                    source = request.source,
+                    description = request.description
+                )
+                println("✅ Enqueued coins added notification for user ${request.userId}, amount: ${request.amount}")
+            } catch (e: Exception) {
+                println("❌ Failed to enqueue coins added notification: ${e.message}")
+                // Don't throw - coin was added successfully, notification failure shouldn't block
+            }
+        }
+        
+        return coin
     }
     
     // ========== REWARD CATALOG METHODS ==========
@@ -492,6 +511,13 @@ class RewardService(
         catalogId: Long,
         request: CreateRewardCatalogRequest
     ): RewardCatalogItem {
+        // Get the current catalog item to check if stock is being replenished
+        val currentItem = repository.getRewardCatalogById(catalogId)
+        val wasOutOfStock = currentItem != null && 
+                            currentItem.stockQuantity != -1 && 
+                            currentItem.stockQuantity <= 0
+        val willHaveStock = request.stockQuantity == -1 || request.stockQuantity > 0
+        
         // Validate reward type
         val rewardType = try {
             RewardCatalogType.valueOf(request.rewardType.uppercase())
@@ -516,7 +542,59 @@ class RewardService(
             throw IllegalArgumentException("Reward catalog item not found")
         }
         
-        return repository.getRewardCatalogById(catalogId)!!
+        val updatedItem = repository.getRewardCatalogById(catalogId)!!
+        
+        // If item was out of stock and now has stock, notify interested users
+        // In a real implementation, you'd want to track which users viewed/wanted this item
+        // For now, we'll just log that this feature is available
+        if (wasOutOfStock && willHaveStock && request.isActive) {
+            println("📦 Reward '${updatedItem.title}' (ID: $catalogId) is back in stock with quantity ${request.stockQuantity}")
+            println("💡 Tip: Call notifyRewardBackInStock() to notify interested users")
+            // Example usage (you would get userIds from a wishlist/interest table):
+            // notifyRewardBackInStock(catalogId, listOf("user1", "user2", "user3"))
+        }
+        
+        return updatedItem
+    }
+    
+    /**
+     * Notify users that a reward is back in stock
+     * This is a helper method that can be called when restocking items
+     * @param catalogId - The catalog item ID
+     * @param interestedUserIds - List of user IDs who expressed interest in this reward
+     */
+    suspend fun notifyRewardBackInStock(
+        catalogId: Long,
+        interestedUserIds: List<String>
+    ) {
+        if (interestedUserIds.isEmpty()) {
+            return
+        }
+        
+        val catalogItem = repository.getRewardCatalogById(catalogId)
+            ?: throw IllegalArgumentException("Reward catalog item not found")
+        
+        if (!catalogItem.isActive) {
+            println("⚠️ Reward '${catalogItem.title}' is not active, skipping notification")
+            return
+        }
+        
+        if (catalogItem.stockQuantity != -1 && catalogItem.stockQuantity <= 0) {
+            println("⚠️ Reward '${catalogItem.title}' is still out of stock, skipping notification")
+            return
+        }
+        
+        try {
+            NotificationQueueService.enqueueRewardBackInStockNotification(
+                userIds = interestedUserIds,
+                rewardTitle = catalogItem.title,
+                rewardCatalogId = catalogId,
+                coinPrice = catalogItem.coinPrice
+            )
+            println("✅ Enqueued reward back in stock notification for ${interestedUserIds.size} users, reward: ${catalogItem.title}")
+        } catch (e: Exception) {
+            println("❌ Failed to enqueue reward back in stock notification: ${e.message}")
+        }
     }
     
     // ========== TRANSACTION METHODS ==========
@@ -635,6 +713,35 @@ class RewardService(
         // Get remaining coins
         val remainingCoins = repository.getTotalCoins(userId)
         
+        // Send notification for successful catalog claim
+        try {
+            NotificationQueueService.enqueueRewardCatalogClaimedNotification(
+                userId = userId,
+                rewardTitle = catalogItem.title,
+                coinPrice = catalogItem.coinPrice,
+                transactionNumber = transactionNumber,
+                remainingCoins = remainingCoins
+            )
+            println("✅ Enqueued reward catalog claimed notification for user $userId, transaction: $transactionNumber")
+        } catch (e: Exception) {
+            println("❌ Failed to enqueue reward catalog claimed notification: ${e.message}")
+            // Don't throw - transaction was successful, notification failure shouldn't block
+        }
+        
+        // Send low balance warning if remaining coins are below threshold (e.g., 100 coins)
+        val LOW_BALANCE_THRESHOLD = 100L
+        if (remainingCoins > 0 && remainingCoins <= LOW_BALANCE_THRESHOLD) {
+            try {
+                NotificationQueueService.enqueueLowBalanceNotification(
+                    userId = userId,
+                    currentBalance = remainingCoins
+                )
+                println("⚠️ Enqueued low balance notification for user $userId, balance: $remainingCoins")
+            } catch (e: Exception) {
+                println("❌ Failed to enqueue low balance notification: ${e.message}")
+            }
+        }
+        
         return ClaimRewardCatalogResponse(
             transactionId = transactionId,
             transactionNumber = transactionNumber,
@@ -693,7 +800,24 @@ class RewardService(
             throw IllegalStateException("Failed to update transaction status")
         }
         
-        return repository.getTransactionById(transactionId)!!
+        val transaction = repository.getTransactionById(transactionId)!!
+        
+        // Send notification for transaction status update
+        try {
+            NotificationQueueService.enqueueTransactionStatusNotification(
+                userId = transaction.userId,
+                transactionNumber = transaction.transactionNumber,
+                rewardTitle = transaction.rewardTitle,
+                status = request.status,
+                trackingNumber = request.trackingNumber
+            )
+            println("✅ Enqueued transaction status notification for user ${transaction.userId}, transaction: ${transaction.transactionNumber}, status: ${request.status}")
+        } catch (e: Exception) {
+            println("❌ Failed to enqueue transaction status notification: ${e.message}")
+            // Don't throw - status was updated successfully, notification failure shouldn't block
+        }
+        
+        return transaction
     }
 }
 
