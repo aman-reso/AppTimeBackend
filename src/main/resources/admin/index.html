@@ -2532,6 +2532,7 @@
                             <th>Reward</th>
                             <th>Price</th>
                             <th>Recipient</th>
+                            <th>UPI Id</th>
                             <th>Status</th>
                             <th>Created</th>
                             <th>Actions</th>
@@ -2554,6 +2555,7 @@
                                 <td>${order.rewardTitle}</td>
                                 <td>${order.coinPrice} 🪙</td>
                                 <td>${order.recipientName}</td>
+                                 <td>${order.upiId}</td>
                                 <td><span class="badge ${statusBadgeClass}">${order.status}</span></td>
                                 <td>${new Date(order.createdAt).toLocaleString()}</td>
                                 <td class="actions">
