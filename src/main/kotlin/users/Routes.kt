@@ -25,11 +25,14 @@ fun Application.configureUserRoutes() {
             /**
              * POST /api/users/register
              * Register a new device/user
+             * Header: X-Country-Code (optional) - User's country code (e.g., "US", "CA", "GB")
              */
             post("/register") {
                 try {
                     val request = call.receive<DeviceRegistrationRequest>()
-                    val response = service.registerDevice(request)
+                    // Extract country from header
+                    val country = call.request.headers["X-Country-Code"]
+                    val response = service.registerDevice(request, country)
                     call.respondApi(response, statusCode = HttpStatusCode.Created, messageKey = MessageKeys.DEVICE_REGISTERED)
                 } catch (e: IllegalArgumentException) {
                     call.respondError(HttpStatusCode.BadRequest, messageKey = MessageKeys.INVALID_REQUEST, message = e.message)

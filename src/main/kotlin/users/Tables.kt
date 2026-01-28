@@ -11,6 +11,7 @@ object Users : Table("users") {
     val username = varchar("username", 255).nullable().uniqueIndex()
     val email = varchar("email", 255).nullable()
     val name = varchar("name", 255).nullable()
+    val country = varchar("country", 100).nullable() // User's country (ISO country code or name)
 
     // Device information
     val deviceId = varchar("device_id", 255).uniqueIndex()

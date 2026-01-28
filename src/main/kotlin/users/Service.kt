@@ -13,8 +13,10 @@ class UserService(private val repository: UserRepository) {
     /**
      * Register a new device
      * New users receive 10 welcome bonus coins
+     * @param request Device registration request with device info and optional FCM token
+     * @param country Optional user's country from X-Country-Code header
      */
-    suspend fun registerDevice(request: DeviceRegistrationRequest): DeviceRegistrationResponse {
+    suspend fun registerDevice(request: DeviceRegistrationRequest, country: String? = null): DeviceRegistrationResponse {
         // Validate device info
         if (request.deviceInfo.deviceId.isBlank()) {
             throw IllegalArgumentException("Device ID is required")
@@ -24,7 +26,7 @@ class UserService(private val repository: UserRepository) {
         val existingUser = repository.userExistsByDeviceId(request.deviceInfo.deviceId)
         
         // Register the device
-        val response = repository.registerDevice(request.deviceInfo, request.firebaseToken)
+        val response = repository.registerDevice(request.deviceInfo, request.firebaseToken, country)
         
         // If this is a new user (not existing), give welcome bonus
         if (!existingUser) {

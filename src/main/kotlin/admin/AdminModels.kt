@@ -77,6 +77,7 @@ data class AdminUserResponse(
     val username: String? = null,
     val email: String? = null,
     val name: String? = null,
+    val country: String? = null,
     val deviceId: String,
     val deviceModel: String? = null,
     val manufacturer: String? = null,
@@ -99,6 +100,7 @@ data class UpdateUserRequest(
     val username: String? = null,
     val email: String? = null,
     val name: String? = null,
+    val country: String? = null,
     val totpEnabled: Boolean? = null,
     val isBlocked: Boolean? = null
 )

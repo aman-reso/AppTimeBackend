@@ -195,6 +195,7 @@ class AdminRepository {
                         username = row[Users.username],
                         email = row[Users.email],
                         name = row[Users.name],
+                        country = row[Users.country],
                         deviceId = row[Users.deviceId],
                         deviceModel = row[Users.model],
                         manufacturer = row[Users.manufacturer],
@@ -226,6 +227,7 @@ class AdminRepository {
                         username = row[Users.username],
                         email = row[Users.email],
                         name = row[Users.name],
+                        country = row[Users.country],
                         deviceId = row[Users.deviceId],
                         deviceModel = row[Users.model],
                         manufacturer = row[Users.manufacturer],
@@ -246,6 +248,7 @@ class AdminRepository {
                 request.username?.let { value -> it[Users.username] = value }
                 request.email?.let { value -> it[Users.email] = value }
                 request.name?.let { value -> it[Users.name] = value }
+                request.country?.let { value -> it[Users.country] = value }
                 request.totpEnabled?.let { value -> it[Users.totpEnabled] = value }
                 request.isBlocked?.let { value -> it[Users.isBlocked] = value }
             }

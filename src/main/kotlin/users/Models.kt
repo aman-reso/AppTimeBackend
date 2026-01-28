@@ -36,6 +36,7 @@ data class UserProfile(
     val username: String? = null,
     val email: String? = null,
     val name: String? = null,
+    val country: String? = null, // User's country (ISO country code or name)
     val firebaseToken: String? = null, // Firebase Cloud Messaging (FCM) token
     val createdAt: String? = null,
     val updatedAt: String? = null,
@@ -74,6 +75,7 @@ data class PublicUserProfile(
     val username: String? = null,
     val email: String? = null,
     val name: String? = null,
+    val country: String? = null, // User's country (ISO country code or name)
     val createdAt: String? = null,
     val updatedAt: String? = null,
     val lastSyncTime: String? = null // ISO 8601 format - syncTime from usage events batch request

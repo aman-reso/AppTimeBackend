@@ -47,7 +47,7 @@ class UserRepository {
     /**
      * Register a new device/user
      */
-    fun registerDevice(deviceInfo: DeviceInfo, firebaseToken: String? = null): DeviceRegistrationResponse {
+    fun registerDevice(deviceInfo: DeviceInfo, firebaseToken: String? = null, country: String? = null): DeviceRegistrationResponse {
         return dbTransaction {
             val userId = generateEncryptedUserId(deviceInfo.deviceId)
 
@@ -84,6 +84,10 @@ class UserRepository {
                     if (firebaseToken != null) {
                         it[Users.firebaseToken] = firebaseToken
                     }
+                    // Update country if provided
+                    if (country != null) {
+                        it[Users.country] = country
+                    }
                     it[updatedAt] = kotlinx.datetime.Clock.System.now()
                 }
 
@@ -108,6 +112,7 @@ class UserRepository {
             Users.insert {
                 it[Users.userId] = userId
                 it[Users.username] = username
+                it[Users.country] = country
                 it[deviceId] = deviceInfo.deviceId
                 it[manufacturer] = deviceInfo.manufacturer
                 it[model] = deviceInfo.model
@@ -147,6 +152,7 @@ class UserRepository {
                         username = row[Users.username],
                         email = row[Users.email],
                         name = row[Users.name],
+                        country = row[Users.country],
                         firebaseToken = row[Users.firebaseToken],
                         createdAt = row[Users.createdAt].toString(),
                         updatedAt = row[Users.updatedAt].toString(),
@@ -312,6 +318,7 @@ class UserRepository {
                         username = row[Users.username],
                         email = row[Users.email],
                         name = row[Users.name],
+                        country = row[Users.country],
                         firebaseToken = row[Users.firebaseToken],
                         createdAt = row[Users.createdAt].toString(),
                         updatedAt = row[Users.updatedAt].toString(),
