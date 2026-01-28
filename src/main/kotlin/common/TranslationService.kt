@@ -240,6 +240,10 @@ object MessageKeys {
     const val FEEDBACK_DELETED = "feedback.deleted"
     const val FEEDBACK_DELETE_FAILED = "feedback.delete.failed"
 
+    // Notification messages
+    const val NOTIFICATION_SENT = "notification.sent"
+    const val NOTIFICATION_FAILED = "notification.failed"
+
     // Common error messages
     const val INVALID_REQUEST = "error.invalid_request"
     const val INTERNAL_SERVER_ERROR = "error.internal_server_error"

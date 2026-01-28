@@ -179,6 +179,19 @@
     "feature.flag.deleted": "Bandera de característica eliminada exitosamente",
     "feature.flag.delete.failed": "Error al eliminar bandera de característica",
     
+    "feedback.submitted": "Comentarios enviados exitosamente",
+    "feedback.submit.failed": "Error al enviar comentarios",
+    "feedback.retrieved": "Comentarios recuperados exitosamente",
+    "feedback.retrieval.failed": "Error al recuperar comentarios",
+    "feedback.not_found": "Comentarios no encontrados",
+    "feedback.updated": "Comentarios actualizados exitosamente",
+    "feedback.update.failed": "Error al actualizar comentarios",
+    "feedback.deleted": "Comentarios eliminados exitosamente",
+    "feedback.delete.failed": "Error al eliminar comentarios",
+    
+    "notification.sent": "Notificación enviada exitosamente",
+    "notification.failed": "Error al enviar notificación",
+    
     "error.invalid_request": "Solicitud inválida",
     "error.internal_server_error": "Error interno del servidor",
     "error.unauthorized": "No autorizado",

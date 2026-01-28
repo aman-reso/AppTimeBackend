@@ -199,3 +199,23 @@ data class AdminRewardResponse(
     val claimedAt: String? = null
 )
 
+// Notification Management Models
+@Serializable
+data class AdminSendNotificationRequest(
+    val userId: String? = null, // Specific user or null for broadcast
+    val title: String,
+    val text: String,
+    val type: String? = null, // "general", "announcement", etc.
+    val image: String? = null,
+    val deeplink: String? = null,
+    val sendToAll: Boolean = false // If true, send to all users
+)
+
+@Serializable
+data class AdminNotificationResponse(
+    val success: Boolean,
+    val message: String,
+    val sentCount: Int = 0,
+    val failedCount: Int = 0
+)
+

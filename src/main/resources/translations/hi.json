@@ -179,6 +179,19 @@
     "feature.flag.deleted": "फीचर फ्लैग सफलतापूर्वक हटाया गया",
     "feature.flag.delete.failed": "फीचर फ्लैग हटाने में विफल",
     
+    "feedback.submitted": "फीडबैक सफलतापूर्वक सबमिट किया गया",
+    "feedback.submit.failed": "फीडबैक सबमिट करने में विफल",
+    "feedback.retrieved": "फीडबैक सफलतापूर्वक पुनर्प्राप्त किया गया",
+    "feedback.retrieval.failed": "फीडबैक पुनर्प्राप्त करने में विफल",
+    "feedback.not_found": "फीडबैक नहीं मिला",
+    "feedback.updated": "फीडबैक सफलतापूर्वक अपडेट किया गया",
+    "feedback.update.failed": "फीडबैक अपडेट करने में विफल",
+    "feedback.deleted": "फीडबैक सफलतापूर्वक हटाया गया",
+    "feedback.delete.failed": "फीडबैक हटाने में विफल",
+    
+    "notification.sent": "सूचना सफलतापूर्वक भेजी गई",
+    "notification.failed": "सूचना भेजने में विफल",
+    
     "error.invalid_request": "अमान्य अनुरोध",
     "error.internal_server_error": "आंतरिक सर्वर त्रुटि",
     "error.unauthorized": "अनधिकृत",

@@ -131,7 +131,7 @@ class NotificationService(
             title = "Challenge Joined! 🎯",
             text = "You've joined the challenge: $challengeTitle. Good luck!",
             type = "challenge_join",
-            deeplink = "app://challenge/$challengeId"
+            deeplink = "apptime://screen/challenge_detail/$challengeId"
         )
     }
     
@@ -155,7 +155,7 @@ class NotificationService(
             title = "Challenge Completed! 🏆",
             text = "$rankText Challenge: $challengeTitle",
             type = "challenge_complete",
-            deeplink = "app://challenge/$challengeId"
+            deeplink = "apptime://screen/challenge_detail/$challengeId"
         )
     }
     
@@ -169,9 +169,9 @@ class NotificationService(
         rewardId: Long? = null
     ) {
         val deeplink = if (rewardId != null) {
-            "app://reward/$rewardId"
+            "apptime://screen/reward_transaction/$rewardId"
         } else {
-            "app://rewards"
+            "rewards"
         }
         
         createAndSendNotification(
@@ -198,7 +198,7 @@ class NotificationService(
             title = "Challenge Reward! 🏅",
             text = "You won rank #$rank in '$challengeTitle'! You earned $coins coins.",
             type = "challenge_reward",
-            deeplink = "app://challenge/$challengeId"
+            deeplink = "apptime://screen/challenge_detail/$challengeId"
         )
     }
     
@@ -225,7 +225,7 @@ class NotificationService(
                     title = "Challenge Winner! 🎉",
                     text = "$displayName won the challenge '$challengeTitle' and got $coins coins!",
                     type = "challenge_winner",
-                    deeplink = "app://challenge/$challengeId"
+                    deeplink = "apptime://screen/challenge_detail/$challengeId"
                 )
             } catch (e: Exception) {
                 logger.warning("Failed to send challenge winner notification to user $userId: ${e.message}")
@@ -248,7 +248,7 @@ class NotificationService(
             title = "Focus Milestone! 🎯",
             text = "Congratulations! You've reached $milestone with $hours hours of focus time.",
             type = "focus_milestone",
-            deeplink = "app://focus"
+            deeplink = "focus_mode"
         )
     }
     
@@ -258,14 +258,21 @@ class NotificationService(
     suspend fun sendDailyLimitNotification(
         userId: String,
         appName: String,
-        limitMinutes: Int
+        limitMinutes: Int,
+        packageName: String? = null
     ) {
+        val deeplink = if (packageName != null) {
+            "apptime://screen/app_usage_detail/$packageName"
+        } else {
+            "statistics"
+        }
+        
         createAndSendNotification(
             userId = userId,
             title = "Daily Limit Reached ⏰",
             text = "You've reached your daily limit of $limitMinutes minutes for $appName.",
             type = "daily_limit",
-            deeplink = "app://usage"
+            deeplink = deeplink
         )
     }
     
@@ -281,7 +288,7 @@ class NotificationService(
             title = "Time for a Break! ☕",
             text = "You've been using your device for $screenTimeMinutes minutes. Take a break!",
             type = "break_reminder",
-            deeplink = "app://home"
+            deeplink = "landing"
         )
     }
     
@@ -320,7 +327,7 @@ class NotificationService(
             title = "Coins Earned! 💰",
             text = text,
             type = "coins_added",
-            deeplink = "app://rewards/coins"
+            deeplink = "coin_history"
         )
     }
     
@@ -340,7 +347,7 @@ class NotificationService(
             title = "Reward Claimed! 🎁",
             text = "You've successfully claimed '$rewardTitle' for $coinPrice coins! Order #$transactionNumber. You have $remainingCoins coins remaining.",
             type = "reward_claimed",
-            deeplink = "app://rewards/transactions/$transactionNumber"
+            deeplink = "apptime://screen/reward_transaction/$transactionNumber"
         )
     }
     
@@ -392,7 +399,7 @@ class NotificationService(
             title = title,
             text = text,
             type = "transaction_status",
-            deeplink = "app://rewards/transactions/$transactionNumber"
+            deeplink = "apptime://screen/reward_transaction/$transactionNumber"
         )
     }
     
@@ -409,7 +416,7 @@ class NotificationService(
             title = "Low Coin Balance ⚠️",
             text = "You only have $currentBalance coins remaining. Complete challenges to earn more coins!",
             type = "low_balance",
-            deeplink = "app://challenges"
+            deeplink = "challenges"
         )
     }
     
@@ -428,7 +435,7 @@ class NotificationService(
             title = "Reward Back in Stock! 🎉",
             text = "'$rewardTitle' is back in stock for $coinPrice coins! Claim it before it's gone again.",
             type = "reward_back_in_stock",
-            deeplink = "app://rewards/catalog/$rewardCatalogId"
+            deeplink = "rewards"
         )
     }
     
@@ -447,8 +454,173 @@ class NotificationService(
             title = "Coins Spent 💸",
             text = "You spent $amount coins on '$rewardTitle'. You have $remainingCoins coins remaining.",
             type = "coins_spent",
-            deeplink = "app://rewards/coins"
+            deeplink = "coin_history"
+        )
+    }
+    
+    // ========== ADDITIONAL NOTIFICATION METHODS FOR NEW FEATURES ==========
+    
+    /**
+     * Send app usage high alert notification
+     * Warns user when an app usage exceeds a threshold
+     */
+    suspend fun sendAppUsageHighAlertNotification(
+        userId: String,
+        appName: String,
+        packageName: String,
+        usageMinutes: Int,
+        thresholdMinutes: Int
+    ) {
+        createAndSendNotification(
+            userId = userId,
+            title = "High Usage Alert ⚠️",
+            text = "$appName exceeded $thresholdMinutes minutes today. Current usage: $usageMinutes minutes.",
+            type = "app_usage_alert",
+            deeplink = "apptime://screen/app_usage_detail/$packageName"
+        )
+    }
+    
+    /**
+     * Send leaderboard rank update notification
+     * Notifies user when their leaderboard rank changes significantly
+     */
+    suspend fun sendLeaderboardRankNotification(
+        userId: String,
+        newRank: Int,
+        previousRank: Int,
+        leaderboardType: String = "global"
+    ) {
+        val rankChange = if (newRank < previousRank) "up" else "down"
+        val emoji = if (newRank < previousRank) "📈" else "📉"
+        
+        createAndSendNotification(
+            userId = userId,
+            title = "Leaderboard Update $emoji",
+            text = "Your rank moved $rankChange from #$previousRank to #$newRank on the $leaderboardType leaderboard!",
+            type = "leaderboard_update",
+            deeplink = "leaderboard"
+        )
+    }
+    
+    /**
+     * Send new wallpaper notification
+     * Notifies users when new wallpapers are added
+     */
+    suspend fun sendNewWallpaperNotification(
+        userId: String,
+        collectionName: String,
+        wallpaperCount: Int
+    ) {
+        createAndSendNotification(
+            userId = userId,
+            title = "New Wallpapers Available! 🎨",
+            text = "$wallpaperCount new wallpapers added to $collectionName collection. Check them out!",
+            type = "new_wallpaper",
+            deeplink = "wallpaper"
+        )
+    }
+    
+    /**
+     * Send welcome bonus notification
+     * Notifies new users about their welcome bonus
+     */
+    suspend fun sendWelcomeBonusNotification(
+        userId: String,
+        bonusAmount: Long
+    ) {
+        createAndSendNotification(
+            userId = userId,
+            title = "Welcome to AppTime! 🎉",
+            text = "You've received $bonusAmount welcome bonus coins! Start completing challenges to earn more.",
+            type = "welcome_bonus",
+            deeplink = "landing"
+        )
+    }
+    
+    /**
+     * Send streak milestone notification
+     * Notifies user when they reach a login streak milestone
+     */
+    suspend fun sendStreakMilestoneNotification(
+        userId: String,
+        streakDays: Int,
+        bonusCoins: Long? = null
+    ) {
+        val bonusText = if (bonusCoins != null) {
+            " You earned $bonusCoins bonus coins!"
+        } else {
+            ""
+        }
+        
+        createAndSendNotification(
+            userId = userId,
+            title = "Streak Milestone! 🔥",
+            text = "Amazing! You've maintained a $streakDays-day login streak!$bonusText",
+            type = "streak_milestone",
+            deeplink = "profile"
+        )
+    }
+    
+    /**
+     * Send friend activity notification
+     * Notifies user about friend's achievements or activities
+     */
+    suspend fun sendFriendActivityNotification(
+        userId: String,
+        friendUsername: String,
+        activityType: String,
+        activityDetails: String
+    ) {
+        val title = when (activityType.uppercase()) {
+            "CHALLENGE_WIN" -> "Friend Won Challenge! 🏆"
+            "NEW_RECORD" -> "Friend Set New Record! ⭐"
+            "ACHIEVEMENT" -> "Friend Unlocked Achievement! 🎖️"
+            else -> "Friend Activity 👥"
+        }
+        
+        createAndSendNotification(
+            userId = userId,
+            title = title,
+            text = "$friendUsername $activityDetails",
+            type = "friend_activity",
+            deeplink = "apptime://screen/record_detail/$friendUsername"
+        )
+    }
+    
+    /**
+     * Send profile view notification
+     * Notifies user when someone views their profile
+     */
+    suspend fun sendProfileViewNotification(
+        userId: String,
+        viewerUsername: String
+    ) {
+        createAndSendNotification(
+            userId = userId,
+            title = "Profile Viewed 👀",
+            text = "$viewerUsername viewed your profile!",
+            type = "profile_view",
+            deeplink = "profile"
+        )
+    }
+    
+    /**
+     * Send system maintenance notification
+     * Notifies users about scheduled maintenance or updates
+     */
+    suspend fun sendMaintenanceNotification(
+        userId: String,
+        maintenanceTime: String,
+        duration: String
+    ) {
+        createAndSendNotification(
+            userId = userId,
+            title = "Scheduled Maintenance 🔧",
+            text = "AppTime will be under maintenance on $maintenanceTime for approximately $duration. Thank you for your patience!",
+            type = "maintenance",
+            deeplink = "landing"
         )
     }
 }
+
 

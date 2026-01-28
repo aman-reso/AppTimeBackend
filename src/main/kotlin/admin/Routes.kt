@@ -12,6 +12,9 @@ import com.apptime.code.rewards.RewardRepository
 import com.apptime.code.rewards.TransactionStatus
 import com.apptime.code.rewards.CoinSource
 import com.apptime.code.rewards.AddCoinsRequest
+import com.apptime.code.notifications.NotificationService
+import com.apptime.code.notifications.NotificationRepository
+import users.UserRepository
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
@@ -31,6 +34,9 @@ fun Application.configureAdminRoutes() {
     val rewardService = RewardService(rewardRepository)
     val feedbackRepository = FeedbackRepository()
     val feedbackService = FeedbackService(feedbackRepository)
+    val userRepository = UserRepository()
+    val notificationRepository = NotificationRepository()
+    val notificationService = NotificationService(notificationRepository, userRepository)
     
     routing {
         route("/api/admin") {
@@ -677,6 +683,121 @@ fun Application.configureAdminRoutes() {
                         call.respondError(HttpStatusCode.BadRequest, messageKey = MessageKeys.INVALID_REQUEST, message = e.message)
                     } catch (e: Exception) {
                         call.respondError(HttpStatusCode.InternalServerError, messageKey = MessageKeys.ASSETS_FAILED, message = "Failed to delete asset: ${e.message}")
+                    }
+                }
+            }
+            
+            // Notification Management
+            route("/notifications") {
+                /**
+                 * POST /api/admin/notifications/send
+                 * Send notification to a specific user or broadcast to all users
+                 */
+                post("/send") {
+                    try {
+                        val request = call.receive<AdminSendNotificationRequest>()
+                        
+                        // Validate request
+                        if (request.title.isBlank() || request.text.isBlank()) {
+                            call.respondError(HttpStatusCode.BadRequest, messageKey = MessageKeys.INVALID_REQUEST, message = "Title and text are required")
+                            return@post
+                        }
+                        
+                        if (!request.sendToAll && request.userId.isNullOrBlank()) {
+                            call.respondError(HttpStatusCode.BadRequest, messageKey = MessageKeys.INVALID_REQUEST, message = "Either userId or sendToAll must be specified")
+                            return@post
+                        }
+                        
+                        var sentCount = 0
+                        var failedCount = 0
+                        
+                        if (request.sendToAll) {
+                            // Broadcast to all users
+                            try {
+                                // Get all users (in batches to avoid memory issues)
+                                var offset = 0
+                                val batchSize = 100
+                                var hasMore = true
+                                
+                                while (hasMore) {
+                                    val users = adminRepository.getAllUsers(batchSize, offset)
+                                    if (users.isEmpty()) {
+                                        hasMore = false
+                                        break
+                                    }
+                                    
+                                    for (user in users) {
+                                        try {
+                                            notificationService.createAndSendNotification(
+                                                userId = user.userId,
+                                                title = request.title,
+                                                text = request.text,
+                                                type = request.type ?: "announcement",
+                                                image = request.image,
+                                                deeplink = request.deeplink,
+                                                sendPush = true
+                                            )
+                                            sentCount++
+                                        } catch (e: Exception) {
+                                            failedCount++
+                                            // Continue with other users even if one fails
+                                        }
+                                    }
+                                    
+                                    offset += batchSize
+                                    if (users.size < batchSize) {
+                                        hasMore = false
+                                    }
+                                }
+                                
+                                call.respondApi(
+                                    AdminNotificationResponse(
+                                        success = true,
+                                        message = "Broadcast notification sent to $sentCount users ($failedCount failed)",
+                                        sentCount = sentCount,
+                                        failedCount = failedCount
+                                    ),
+                                    messageKey = MessageKeys.NOTIFICATION_SENT
+                                )
+                            } catch (e: Exception) {
+                                call.respondError(HttpStatusCode.InternalServerError, messageKey = MessageKeys.NOTIFICATION_FAILED, message = "Failed to broadcast notification: ${e.message}")
+                            }
+                        } else {
+                            // Send to specific user
+                            val user = adminRepository.getUserById(request.userId!!)
+                            if (user == null) {
+                                call.respondError(HttpStatusCode.NotFound, messageKey = MessageKeys.USER_NOT_FOUND)
+                                return@post
+                            }
+                            
+                            try {
+                                notificationService.createAndSendNotification(
+                                    userId = request.userId,
+                                    title = request.title,
+                                    text = request.text,
+                                    type = request.type ?: "general",
+                                    image = request.image,
+                                    deeplink = request.deeplink,
+                                    sendPush = true
+                                )
+                                
+                                call.respondApi(
+                                    AdminNotificationResponse(
+                                        success = true,
+                                        message = "Notification sent successfully to user ${request.userId}",
+                                        sentCount = 1,
+                                        failedCount = 0
+                                    ),
+                                    messageKey = MessageKeys.NOTIFICATION_SENT
+                                )
+                            } catch (e: Exception) {
+                                call.respondError(HttpStatusCode.InternalServerError, messageKey = MessageKeys.NOTIFICATION_FAILED, message = "Failed to send notification: ${e.message}")
+                            }
+                        }
+                    } catch (e: IllegalArgumentException) {
+                        call.respondError(HttpStatusCode.BadRequest, messageKey = MessageKeys.INVALID_REQUEST, message = e.message)
+                    } catch (e: Exception) {
+                        call.respondError(HttpStatusCode.InternalServerError, messageKey = MessageKeys.NOTIFICATION_FAILED, message = "Failed to send notification: ${e.message}")
                     }
                 }
             }
